@@ -1,32 +1,49 @@
-# Core
+# ── Core API ──
 fastapi==0.115.0
 uvicorn[standard]==0.31.0
 pydantic==2.9.0
 pydantic-settings==2.5.0
+python-multipart==0.0.12
 
-# Async HTTP client
+# ── HTTP async ──
 httpx==0.27.0
 
-# Database
-sqlalchemy==2.0.35
+# ── Database (PostgreSQL async) ──
+sqlalchemy[asyncio]==2.0.35
 asyncpg==0.29.0
 alembic==1.13.0
 
-# Cache
+# ── Cache / Broker ──
 redis[hiredis]==5.1.0
 
-# Security
+# ── Tâches asynchrones longues ──
+celery==5.4.0
+
+# ── Scheduling ──
+apscheduler==3.10.4
+
+# ── Microsoft Graph (M365 tenant ingestion) ──
+azure-identity==1.18.0
+msgraph-sdk==1.9.0
+
+# ── Détection ──
+yara-python==4.5.1
+clamd==1.0.2
+
+# ── Sécurité ──
+bcrypt==4.2.0
 python-jose[cryptography]==3.3.0
-passlib[bcrypt]==1.7.4
-python-multipart==0.0.12
 
-# Monitoring
+# ── Observabilité ──
 prometheus-fastapi-instrumentator==7.0.0
+prometheus-client==0.20.0
 
-# Dev/Test
+# ── Dev / Tests ──
 pytest==8.3.0
 pytest-asyncio==0.24.0
 pytest-cov==5.0.0
+pytest-mock==3.14.0
+httpx[testclient]==0.27.0
 black==24.8.0
 ruff==0.6.0
 mypy==1.11.0

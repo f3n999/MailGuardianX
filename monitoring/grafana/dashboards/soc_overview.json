@@ -1,0 +1,150 @@
+{
+  "annotations": {"list": []},
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "orange", "value": 50},
+              {"color": "red", "value": 100}
+            ]
+          }
+        }
+      },
+      "gridPos": {"h": 5, "w": 6, "x": 0, "y": 0},
+      "id": 1,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "orientation": "auto",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "textMode": "auto"
+      },
+      "pluginVersion": "10.0.0",
+      "targets": [
+        {
+          "expr": "sum(rate(http_requests_total{handler=\"/api/v1/analyze\"}[5m])) * 60",
+          "legendFormat": "Emails / min",
+          "refId": "A"
+        }
+      ],
+      "title": "Emails analysés (par minute)",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "red", "value": 1}
+            ]
+          },
+          "unit": "ms"
+        }
+      },
+      "gridPos": {"h": 5, "w": 6, "x": 6, "y": 0},
+      "id": 2,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "orientation": "auto",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{handler=\"/api/v1/analyze\"}[5m])) by (le)) * 1000",
+          "legendFormat": "P95 latence",
+          "refId": "A"
+        }
+      ],
+      "title": "P95 latence /analyze",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {"axisCenteredZero": false, "axisLabel": "", "drawStyle": "line", "fillOpacity": 20, "lineWidth": 2},
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green"}]}
+        }
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+      "id": 3,
+      "options": {"legend": {"calcs": [], "displayMode": "list", "placement": "bottom"}, "tooltip": {"mode": "multi", "sort": "none"}},
+      "targets": [
+        {
+          "expr": "sum(rate(http_requests_total{job=\"orchestrator\"}[1m])) by (status)",
+          "legendFormat": "HTTP {{status}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Requêtes / sec par status HTTP",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+      "id": 4,
+      "options": {"legend": {"calcs": [], "displayMode": "list", "placement": "bottom"}, "tooltip": {"mode": "multi", "sort": "none"}},
+      "targets": [
+        {
+          "expr": "sum(rate(http_requests_total{handler=~\"/api/v1/.*\"}[5m])) by (handler)",
+          "legendFormat": "{{handler}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Requêtes par endpoint",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+      "id": 5,
+      "options": {"legend": {"calcs": [], "displayMode": "list", "placement": "bottom"}, "tooltip": {"mode": "multi", "sort": "none"}},
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(http_request_duration_seconds_bucket[5m])) by (le, handler)) * 1000",
+          "legendFormat": "P50 {{handler}}",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le, handler)) * 1000",
+          "legendFormat": "P95 {{handler}}",
+          "refId": "B"
+        }
+      ],
+      "title": "Latence (P50 / P95)",
+      "type": "timeseries"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["mailguardianx", "soc"],
+  "templating": {"list": []},
+  "time": {"from": "now-6h", "to": "now"},
+  "timepicker": {},
+  "timezone": "",
+  "title": "MailGuardianX — SOC Overview",
+  "uid": "mgx-soc-overview",
+  "version": 1
+}

@@ -1,165 +1,200 @@
-#  Défense Anti-Ransomware — Sécurité Email pour le Secteur Santé
+# MailGuardianX
 
-> **Mission Sandboxing 2025–2026** — Oteria Cyber School B3  
-> Détection de ransomware par email avec analyse dynamique et threat intelligence, conçue pour le milieu hospitalier, déployable sans licence propriétaire.
+> **Défense anti-ransomware par email pour le secteur santé**
+> Projet de fin d'année — Oteria Cyber School, promo B3 2025-2026
 
----
-
-## TL;DR
-
-Une **brique de sécurité email anti-ransomware** pour les hôpitaux :
-
-- **Backend d'orchestration** (FastAPI) hébergé chez le prestataire
-- **Agents légers** déployés sur les postes de l'hôpital (Windows)
-- **Analyse en cascade** : Cache Redis → Heuristique → MISP → CAPE Sandbox
-- **RGPD-compliant** : seules les métadonnées et hash sortent de l'hôpital
-- **Open source** : zéro licence propriétaire, stack 100% libre
+Pipeline multi-couches qui analyse les emails d'un tenant Microsoft 365 via Graph API, détecte les ransomwares dans les pièces jointes, et émet un verdict en quelques secondes — sans qu'aucune donnée patient ne quitte l'environnement de l'hôpital.
 
 ---
 
-## Le problème
+## Pourquoi
 
-Les établissements de santé sont les cibles prioritaires des ransomwares. Le vecteur principal : l'email avec pièce jointe piégée.
+Les hôpitaux sont la cible #1 des ransomwares. Le vecteur principal : email avec pièce jointe piégée. Les solutions du marché (Proofpoint, Fortinet…) coûtent **10 000 à 50 000 €/an**, sont opaques, et souvent cloud-first — incompatible avec les contraintes RGPD des données patient.
 
-Les solutions du marché (Proofpoint, Fortinet…) coûtent 10k–50k €/an, sont opaques, et souvent cloud-first — incompatible avec les données patient. Un hôpital a besoin d'une solution qui :
+MailGuardianX propose une alternative :
 
-1. Détecte les ransomwares (y compris zero-day) dans les pièces jointes
-2. Ne fait **jamais** sortir de données patient du SI hospitalier
-3. Fonctionne sans infrastructure lourde côté hôpital
-4. Ne coûte rien en licences
+- **Open source**, zéro licence propriétaire (GPL v3)
+- **Auto-hébergeable** sur le serveur de l'hôpital
+- **Métadonnées uniquement** sortent du SI hospitalier (hash SHA256 + headers, jamais le corps d'email)
+- **Tenant-level** via Microsoft Graph API — pas d'agent à installer sur les postes
 
 ---
 
 ## Architecture
 
 ```
-    ┌─────────────────────────────────────────────────────────┐
-    │               HÔPITAL (réseau interne)                  │
-    │                                                         │
-    │   ┌──────────────────────────────────────────────────┐  │
-    │   │  Poste médecin/staff                             │  │
-    │   │  ├── Outlook / client mail habituel              │  │
-    │   │  └── Agent léger (extraction hash + métadonnées) │  │
-    │   └──────────────────────────────────────────────────┘  │
-    │            │                          ▲                  │
-    │            │ Métadonnées + hash       │ Verdict          │
-    │            │ (HTTPS/TLS)             │ (ALLOW/BLOCK)    │
-    └────────────┼──────────────────────────┼──────────────────┘
-                 │                          │
-                 ▼                          │
-    ┌─────────────────────────────────────────────────────────┐
-    │            BACKEND (chez le prestataire)                 │
-    │                                                         │
-    │   ┌─────────────────────────────────────────────┐       │
-    │   │          API FastAPI (Orchestrateur)         │       │
-    │   │                                             │       │
-    │   │  1. Redis Cache ──────── hash connu ?       │       │
-    │   │     │ non                                   │       │
-    │   │  2. Heuristique ──────── score de risque    │       │
-    │   │     │ score intermédiaire                   │       │
-    │   │  3. MISP Lookup ──────── IOC / campagne ?   │       │
-    │   │     │ suspect                               │       │
-    │   │  4. CAPE Sandbox ──────── exécution isolée  │       │
-    │   │     │                                       │       │
-    │   │  → Verdict final (ALLOW / BLOCK / QUARANTINE)│      │
-    │   └─────────────────────────────────────────────┘       │
-    │                                                         │
-    │   ┌──────────┐  ┌───────┐  ┌──────────┐  ┌─────────┐  │
-    │   │PostgreSQL│  │ Redis │  │   MISP   │  │  CAPE   │  │
-    │   │(verdicts)│  │(cache)│  │(threat   │  │(sandbox)│  │
-    │   │          │  │       │  │ intel)   │  │         │  │
-    │   └──────────┘  └───────┘  └──────────┘  └─────────┘  │
-    │                                                         │
-    │   ┌────────────────────┐  ┌─────────────────────────┐  │
-    │   │ Grafana (dashboard)│  │ Prometheus (métriques)  │  │
-    │   └────────────────────┘  └─────────────────────────┘  │
-    └─────────────────────────────────────────────────────────┘
+Microsoft 365 tenant
+       │
+       │  (Graph API, app-only Client Credentials)
+       ▼
+APScheduler (scan différentiel toutes les 15min)
+       │
+       ▼
+GraphIngestor — télécharge emails + pièces jointes
+       │
+       ▼
+┌─────────────────────────────────────────────────┐
+│  Orchestrateur FastAPI                          │
+│                                                 │
+│   1. Redis cache       (< 5ms)                  │
+│   2. Heuristique       (< 10ms)                 │
+│   3. YARA in-memory    (< 100ms, thread pool)   │
+│   4. ClamAV (clamd)    (< 500ms)                │
+│   5. MISP threat intel (< 1s)                   │
+│   6. CAPE Sandbox      (2-10min, via Celery)    │
+│                                                 │
+│   Chaque étape peut court-circuiter avec BLOCK  │
+└─────────────────────────────────────────────────┘
+       │
+       ▼
+Verdict + IOCs → PostgreSQL (JSONB rapports CAPE)
+       │
+       ▼
+Prometheus → Grafana (dashboard SOC)
 ```
 
-### Pipeline de décision (cascade)
+### Pipeline cumulatif
 
 | Étape | Service | Latence | Rôle |
-|-------|---------|---------|------|
-| 1 | **Redis Cache** | < 5ms | Hash déjà analysé ? Verdict instantané |
-| 2 | **Heuristique** | < 10ms | Score de risque (extension, macros, SPF/DKIM, patterns santé) |
-| 3 | **MISP** | < 1s | IOCs connus, campagnes actives, tags ransomware |
-| 4 | **CAPE Sandbox** | 2–10 min | Exécution dynamique en VM Windows isolée |
-
-Chaque étape peut **court-circuiter** le pipeline : si le hash est en cache → verdict en 5ms, pas besoin des étapes suivantes.
-
----
-
-## Flux de traitement
-
-### Chemin rapide (métadonnées uniquement — RGPD-safe)
-
-1. Email arrive sur le poste → l'agent détecte la pièce jointe
-2. L'agent calcule le **SHA256** et collecte les **métadonnées** (expéditeur, taille, type MIME, SPF/DKIM/DMARC)
-3. Envoi au backend via HTTPS → `POST /api/v1/analyze`
-4. Le backend répond avec un verdict en < 1 seconde (cache + heuristique + MISP)
-5. L'agent applique le verdict localement
-
-**Aucune donnée patient ne quitte l'hôpital à cette étape.**
-
-### Chemin profond (analyse CAPE — optionnel)
-
-1. Si le score est intermédiaire, le backend renvoie `REQUEST_DEEP_ANALYSIS`
-2. L'agent envoie la pièce jointe (pas le corps de l'email) → `POST /api/v1/upload`
-3. CAPE exécute le fichier en VM Windows isolée
-4. Analyse comportementale : chiffrement, shadow copies, injection, C2…
-5. Verdict final renvoyé à l'agent
-
-**Ce mode est optionnel et encadré** : uniquement les fichiers techniques, supprimés après analyse.
+|------:|--------|--------:|------|
+| 1 | **Redis** | < 5ms | Hash déjà vu → verdict instantané |
+| 2 | **Heuristique** | < 10ms | Extension, double extension, MIME mismatch, SPF/DKIM/DMARC, patterns santé |
+| 3 | **YARA** | < 100ms | 7+ règles ransomware (CryptoAPI, shadow copies, dropper macro/LNK…) |
+| 4 | **ClamAV** | < 500ms | Signatures connues (main.cvd + daily.cvd) |
+| 5 | **MISP** | < 1s | Threat intel — IOCs, campagnes, tags |
+| 6 | **CAPE** | 2-10min | Analyse dynamique en VM Windows isolée (réseau `internal: true` + INetSim) |
 
 ---
 
 ## Stack technique
 
-| Composant | Technologie | Rôle |
-|-----------|-------------|------|
-| **Orchestrateur** | FastAPI (Python 3.11) | API centrale, pipeline de décision |
-| **Cache** | Redis 7 | Hash lookup instantané, rate limiting, réputation expéditeur |
-| **Sandbox** | CAPEv2 | Analyse dynamique en VM Windows isolée |
-| **Threat Intel** | MISP | Base d'IOCs, campagnes, enrichissement |
-| **Base de données** | PostgreSQL 15 | Stockage verdicts, logs, métriques |
-| **Base CAPE** | MongoDB 6 | Stockage rapports CAPE |
-| **Base MISP** | MySQL 8 | Backend MISP |
-| **Monitoring** | Grafana + Prometheus | Dashboard SOC, métriques |
-| **Agent** | C# (.NET) ou Python | Client léger côté hôpital |
+| Composant | Rôle |
+|-----------|------|
+| FastAPI (Python 3.11, async) | API orchestrateur |
+| PostgreSQL 16 + SQLAlchemy 2.0 async | Stockage verdicts + Alembic migrations |
+| Redis 7 | Cache hash, rate limit, broker Celery |
+| Celery | Tâches longues (CAPE) |
+| YARA (yara-python) | Détection par patterns |
+| ClamAV (clamd) | AV signatures |
+| MISP | Threat intelligence |
+| CAPE Sandbox v2 | Analyse comportementale dynamique |
+| Azure Identity + Microsoft Graph SDK | Auth app-only sur tenant M365 |
+| APScheduler | Scans automatiques |
+| Prometheus + Grafana | Observabilité |
+| Docker Compose v2 | Orchestration |
 
 ---
 
-## Structure du projet
+## Démarrage rapide
+
+### Pré-requis
+
+- Ubuntu Server 22.04 ou 24.04 LTS (recommandé : 64 Go RAM, 32 cœurs, 2 To)
+- Docker Engine ≥ 24.0 + Docker Compose v2
+- Application Azure AD avec permissions Graph `Mail.Read` + `User.Read.All` (admin consent)
+
+### Installation
+
+```bash
+git clone https://github.com/f3n999/SandBox.git mailguardianx
+cd mailguardianx
+
+# Génère tous les secrets Docker
+chmod +x scripts/setup-secrets.sh
+./scripts/setup-secrets.sh
+
+# Remplir les 3 secrets Azure AD
+nano secrets/azure_tenant_id.txt
+nano secrets/azure_client_id.txt
+nano secrets/azure_client_secret.txt
+
+# Variables non-secrètes
+cp .env.example .env
+nano .env   # activer SCHEDULE_ENABLED=true
+
+# Démarrer la stack complète
+docker compose up -d
+
+# Appliquer les migrations DB
+docker compose exec orchestrator alembic upgrade head
+
+# Créer la première clé API admin
+curl -X POST http://localhost:8000/api/v1/admin/keys \
+     -F "name=bootstrap" -F "scopes=analyze,upload,admin"
+```
+
+Voir [GUIDE-DEPLOIEMENT.md](GUIDE-DEPLOIEMENT.md) pour la procédure complète, y compris la récupération des tokens MISP/CAPE après premier boot.
+
+---
+
+## Structure du repo
 
 ```
 .
-├── orchestrator/
-│   ├── api/
-│   │   └── main.py                 # FastAPI — endpoints + middleware
+├── orchestrator/                # Application Python
+│   ├── api/main.py              # Routes FastAPI + lifespan
+│   ├── celery_app.py            # App Celery (workers CAPE)
 │   ├── core/
-│   │   ├── config.py               # Configuration centralisée (pydantic-settings)
-│   │   └── heuristics.py           # Moteur de scoring heuristique
+│   │   ├── config.py            # Config + Docker Secrets
+│   │   └── heuristics.py        # Moteur de scoring rapide
+│   ├── db/session.py            # Session SQLAlchemy 2.0 async
+│   ├── ingestion/
+│   │   ├── graph_client.py      # Microsoft Graph API (app-only)
+│   │   ├── graph_ingestor.py    # Boucle scan tenant → pipeline
+│   │   └── scheduler.py         # APScheduler
 │   ├── models/
-│   │   ├── schemas.py              # Modèles Pydantic (validation entrées/sorties)
-│   │   └── database.py             # Modèles SQLAlchemy (PostgreSQL)
+│   │   ├── database.py          # Modèles SQLAlchemy (JSONB, indexes GIN)
+│   │   └── schemas.py           # Schemas Pydantic (API contracts)
 │   ├── services/
-│   │   ├── orchestrator.py         # Pipeline principal (cerveau du système)
-│   │   ├── cache.py                # Service Redis
-│   │   ├── cape_client.py          # Client CAPE async
-│   │   └── misp_client.py          # Client MISP async
-│   └── tests/
-│       └── unit/
-│           └── test_heuristics.py   # 18 tests unitaires
-├── yara-rules/
-│   └── ransomware_detection.yar    # 7 règles YARA ransomware
+│   │   ├── auth.py              # API keys bcrypt
+│   │   ├── cache.py             # Redis
+│   │   ├── cape_client.py       # CAPE Sandbox async
+│   │   ├── clamav_client.py     # ClamAV via clamd
+│   │   ├── misp_client.py       # MISP threat intel
+│   │   ├── orchestrator.py      # Cerveau du pipeline
+│   │   ├── stats.py             # Stats PostgreSQL pour dashboard
+│   │   └── yara_scanner.py      # YARA in-memory
+│   ├── tasks/cape_tasks.py      # Tâches Celery
+│   └── tests/                   # Unit + integration + E2E
+├── alembic/                     # Migrations DB
+├── yara-rules/                  # Règles YARA ransomware
+├── monitoring/
+│   ├── prometheus.yml
+│   └── grafana/                 # Datasources + dashboards JSON
 ├── scripts/
-│   └── init-db.sql                 # Initialisation PostgreSQL
-├── docker-compose.yml              # Stack complète
-├── Dockerfile                      # Multi-stage (dev + prod)
-├── requirements.txt                # Dépendances Python (versions pinées)
-├── .env.example                    # Template secrets (AUCUN secret en dur)
-└── pyproject.toml                  # Config pytest
+│   ├── init-db.sql              # Init PostgreSQL au premier boot
+│   └── setup-secrets.sh         # Génération Docker Secrets
+├── secrets/                     # Fichiers de secrets (gitignored)
+├── docker-compose.yml           # Stack complète
+├── Dockerfile                   # Multi-stage (builder/prod/worker/dev)
+├── requirements.txt
+└── GUIDE-DEPLOIEMENT.md
 ```
+
+---
+
+## API publique (extrait)
+
+| Méthode | Endpoint | Rôle |
+|---------|----------|------|
+| GET | `/` | Info service |
+| GET | `/health` | État réel de chaque service (Redis, CAPE, MISP, ClamAV, YARA, scheduler) |
+| GET | `/metrics` | Endpoint Prometheus |
+| POST | `/api/v1/analyze` | Analyse metadata-only (auth requise) |
+| POST | `/api/v1/upload` | Upload PJ → YARA + ClamAV + CAPE (synchrone) |
+| POST | `/api/v1/upload/async` | Idem en mode Celery (retourne `celery_task_id`) |
+| GET | `/api/v1/verdict/{task_id}` | Verdict caché par task_id |
+| GET | `/api/v1/celery/{job_id}` | Statut/résultat d'une tâche Celery |
+| GET | `/api/v1/stats?window_hours=24` | Stats SOC (PostgreSQL) |
+| GET | `/api/v1/sessions` | Historique des sessions de scan |
+| POST | `/api/v1/scan/trigger` | Déclenche un scan Graph manuel |
+| POST | `/api/v1/whitelist/{sha256}` | Whitelist un hash |
+| POST | `/api/v1/blacklist/{sha256}` | Blacklist un hash |
+| POST | `/api/v1/admin/keys` | Créer une API key (bcrypt) |
+| GET | `/api/v1/admin/keys` | Lister les API keys actives |
+| DELETE | `/api/v1/admin/keys/{id}` | Révoquer une clé |
+
+Documentation interactive : `https://serveur:8000/docs` (Swagger UI).
 
 ---
 
@@ -167,57 +202,56 @@ Chaque étape peut **court-circuiter** le pipeline : si le hash est en cache →
 
 | Principe | Implémentation |
 |----------|----------------|
-| **Minimisation des données** | Seuls hash + métadonnées techniques envoyés au backend |
-| **Pas de données patient** | Corps d'email, champs patients, noms → jamais transmis |
-| **Chiffrement en transit** | Toute communication agent ↔ backend en HTTPS/TLS |
-| **Suppression après analyse** | Fichiers envoyés à CAPE supprimés après verdict |
-| **Restriction d'accès** | Auth par API key, rate limiting par agent, CORS restreint |
-| **Traçabilité** | Logs structurés, stockage verdicts avec timestamps |
-| **Chemin profond optionnel** | L'envoi de fichiers complets peut être désactivé par politique |
+| Minimisation des données | Hash SHA256 + métadonnées techniques uniquement transmis au backend |
+| Pas de données patient | Corps d'email, champs patients, noms → jamais transmis |
+| Chiffrement en transit | TLS partout (HTTPS, asyncpg SSL, Redis password) |
+| Suppression après analyse | Fichiers envoyés à CAPE supprimés après verdict (TTL configurable) |
+| Restriction d'accès | API keys bcrypt + scopes + rate limiting par agent |
+| Traçabilité | `scan_sessions` + `email_analyses` en PostgreSQL avec timestamps |
+| Réseau isolé | CAPE tourne sur `internal: true` (INetSim simule Internet) |
+| Secrets | Docker Secrets uniquement (pas d'env vars sensibles, pas de fichiers committés) |
 
 ---
 
-## API Endpoints
+## Tests
 
-| Méthode | Endpoint | Description |
-|---------|----------|-------------|
-| `GET` | `/` | Info service |
-| `GET` | `/health` | Health check réel (vérifie Redis, CAPE, MISP) |
-| `POST` | `/api/v1/analyze` | Analyse email (métadonnées + hash) |
-| `POST` | `/api/v1/upload` | Upload fichier pour CAPE (chemin profond) |
-| `GET` | `/api/v1/verdict/{task_id}` | Récupérer un verdict |
-| `GET` | `/api/v1/stats` | Statistiques SOC |
-| `POST` | `/api/v1/whitelist/{sha256}` | Whitelist un hash (faux positif) |
-| `POST` | `/api/v1/blacklist/{sha256}` | Blacklist un hash |
-| `GET` | `/docs` | Documentation Swagger UI |
+```bash
+# Tests unitaires
+pytest orchestrator/tests/unit -v
 
----
+# Tests intégration (services mockés)
+pytest orchestrator/tests/integration -v
 
-## Moteur heuristique
+# Tests E2E sur l'API
+pytest orchestrator/tests/e2e -v
 
-Le scoring prend en compte :
-
-- **Extensions à haut risque** : `.exe`, `.dll`, `.vbs`, `.ps1`, `.hta`, `.lnk`, `.iso` → score 0.78–0.95
-- **Doubles extensions** : `facture.pdf.exe` → +0.35
-- **Macros activées** : `.docm`, `.xlsm` → +0.30
-- **Archives chiffrées** : ZIP protégé par mot de passe → +0.25
-- **MIME mismatch** : extension ≠ type MIME → +0.30
-- **Taille suspecte** : EXE de 15KB (dropper) ou PDF de 200 octets (leurre)
-- **Authentification email** : SPF/DKIM/DMARC fail → +0.15 à +0.40
-- **Patterns santé** : domaines usurpés (ameli.fr, mssante.fr, ars.sante…) → +0.35
-- **Expéditeurs suspects** : `invoice-payment@`, `urgent-notification@` → +0.20
-- **Envoi de masse** : > 50 destinataires → +0.15
+# Tout
+pytest
+```
 
 ---
 
-## Licence
+## Sécurité — production
 
-**GNU General Public License v3.0** — Voir [LICENSE](LICENSE)
+- Reverse proxy HTTPS (Caddy/Traefik) devant l'API
+- IP allowlist sur `/api/v1/admin/*`
+- Firewall UFW : seulement 443 + 22 exposés
+- SSH par clé uniquement (`PasswordAuthentication no`)
+- Backups PostgreSQL automatisés
+- Alertes Prometheus → Slack/Teams
+
+Voir [GUIDE-DEPLOIEMENT.md](GUIDE-DEPLOIEMENT.md) section *Sécurité — production*.
 
 ---
 
 ## Équipe
 
-**Oteria Cyber School — Promotion B3 2025–2026**
+**Oteria Cyber School — Promo B3 2025-2026**
+
+Projet collectif — Matthieu, Mohammed, Michael, Thibault, Tess.
 
 ---
+
+## Licence
+
+[GNU General Public License v3.0](LICENSE)

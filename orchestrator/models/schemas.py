@@ -120,7 +120,15 @@ class AttachmentVerdict(BaseModel):
     confidence: float = Field(ge=0.0, le=1.0)
     threat_name: Optional[str] = None
     signatures_matched: list[str] = []
-    analysis_source: str = "unknown"  # cache, misp, heuristic, cape
+    analysis_source: str = "unknown"  # cache, heuristic, yara, clamav, misp, cape
+
+    # Scores détaillés par étape (optionnels — remplis selon le pipeline)
+    heuristic_score: float = 0.0
+    yara_matches: list[str] = []
+    clamav_signature: Optional[str] = None
+    misp_score: float = 0.0
+    cape_score: float = 0.0
+    cape_task_id: Optional[int] = None
 
 
 class AnalysisResponse(BaseModel):
@@ -147,31 +155,38 @@ class FileUploadRequest(BaseModel):
 # ──────────────────── Scoring interne ────────────────────
 
 class RiskScore(BaseModel):
-    """Score de risque composé."""
-    total: float = Field(ge=0.0, le=1.0)
+    """Score de risque composé (pipeline cumulatif)."""
+    total: float = Field(default=0.0, ge=0.0, le=1.0)
     hash_score: float = 0.0       # Connu comme malveillant ?
     heuristic_score: float = 0.0  # Caractéristiques suspectes ?
+    yara_score: float = 0.0       # Règles YARA matchées
+    clamav_score: float = 0.0     # Détection ClamAV
     misp_score: float = 0.0       # IOC trouvé dans MISP ?
     cape_score: float = 0.0       # Score sandbox
     sender_score: float = 0.0     # Réputation expéditeur
     breakdown: dict = {}
 
     def compute_total(self) -> float:
-        """Calcul pondéré du score total."""
+        """Combine les scores en cumulatif borné [0,1] avec pondérations."""
         weights = {
-            "hash": 0.35,
-            "heuristic": 0.20,
-            "misp": 0.25,
-            "cape": 0.15,
+            "hash": 0.30,
+            "heuristic": 0.15,
+            "yara": 0.20,
+            "clamav": 0.20,
+            "misp": 0.20,
+            "cape": 0.25,
             "sender": 0.05,
         }
-        self.total = min(1.0, (
+        raw = (
             self.hash_score * weights["hash"]
             + self.heuristic_score * weights["heuristic"]
+            + self.yara_score * weights["yara"]
+            + self.clamav_score * weights["clamav"]
             + self.misp_score * weights["misp"]
             + self.cape_score * weights["cape"]
             + self.sender_score * weights["sender"]
-        ))
+        )
+        self.total = min(1.0, raw)
         return self.total
 
 

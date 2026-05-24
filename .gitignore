@@ -1,0 +1,41 @@
+# ── Python ──
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+ENV/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# ── Secrets (CRITIQUE — ne jamais committer) ──
+.env
+.env.local
+secrets/*.txt
+!secrets/README.md
+
+# ── Logs & data ──
+*.log
+data/
+logs/
+
+# ── IDE / Tools ──
+.vscode/
+.idea/
+.claude/
+*.swp
+*.swo
+
+# ── OS ──
+.DS_Store
+Thumbs.db
+
+# ── Docker ──
+docker-compose.override.yml
