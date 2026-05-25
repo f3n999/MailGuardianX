@@ -30,7 +30,7 @@ gen_random() {
 
 echo "── Génération des secrets MailGuardianX ──"
 
-# Secrets aléatoires
+# ── Secrets aléatoires ──
 write_if_missing "secret_key"            "$(gen_random)"
 write_if_missing "api_key_pepper"        "$(gen_random)"
 write_if_missing "postgres_password"     "$(gen_random)"
@@ -40,18 +40,31 @@ write_if_missing "redis_password"        "$(gen_random)"
 write_if_missing "grafana_password"      "$(openssl rand -base64 24 | tr -d '\n')"
 write_if_missing "misp_admin_passphrase" "$(gen_random)"
 
-# Valeurs fixes
+# ── Valeurs fixes ──
 write_if_missing "postgres_user"      "postgres"
 write_if_missing "misp_admin_email"   "admin@mailguardianx.local"
 
-# DB URLs (composées à partir des passwords générés)
+# ── URLs composées (lisent les passwords déjà générés ci-dessus) ──
+#
+#  IMPORTANT: on utilise le superuser "postgres" dont on connaît le mot de passe
+#  (POSTGRES_PASSWORD_FILE dans le container postgres = postgres_password.txt).
+#  Pas besoin de créer un user séparé — évite les problèmes de password mismatch.
+#
 PG_PASS="$(cat postgres_password.txt)"
-write_if_missing "database_url" \
-    "postgresql+asyncpg://orchestrator_user:${PG_PASS}@postgres:5432/orchestrator_db"
-write_if_missing "cape_db_url" \
-    "postgresql://cape_user:${PG_PASS}@postgres:5432/cape_db"
+REDIS_PASS="$(cat redis_password.txt)"
 
-# Placeholders à remplir manuellement
+write_if_missing "database_url" \
+    "postgresql+asyncpg://postgres:${PG_PASS}@postgres:5432/orchestrator_db"
+write_if_missing "cape_db_url" \
+    "postgresql://postgres:${PG_PASS}@postgres:5432/cape_db"
+
+# Redis — URL complète avec mot de passe.
+# Ces secrets sont montés dans les containers (pas d'env var sur le host).
+write_if_missing "redis_url"             "redis://:${REDIS_PASS}@redis:6379/0"
+write_if_missing "celery_broker_url"     "redis://:${REDIS_PASS}@redis:6379/1"
+write_if_missing "celery_result_backend" "redis://:${REDIS_PASS}@redis:6379/2"
+
+# ── Placeholders à remplir manuellement ──
 write_if_missing "azure_tenant_id"      "FILL_WITH_AZURE_TENANT_ID"
 write_if_missing "azure_client_id"      "FILL_WITH_AZURE_CLIENT_ID"
 write_if_missing "azure_client_secret"  "FILL_WITH_AZURE_CLIENT_SECRET"
@@ -63,7 +76,9 @@ echo "✅ Secrets prêts dans $SECRETS_DIR"
 echo
 echo "Étapes restantes :"
 echo "  1. Remplir azure_tenant_id.txt / azure_client_id.txt / azure_client_secret.txt"
-echo "  2. Démarrer la stack : docker compose up -d"
-echo "  3. Récupérer le CAPE API token après boot CAPE → mettre à jour cape_api_token.txt"
-echo "  4. Récupérer la MISP API key depuis l'UI MISP → misp_api_key.txt"
-echo "  5. Restart orchestrator : docker compose restart orchestrator celery-worker"
+echo "  2. Copier les variables non-secrètes : cp .env.example .env  (puis nano .env)"
+echo "  3. Démarrer la stack : docker compose up -d"
+echo "  4. Appliquer les migrations : docker compose exec orchestrator alembic upgrade head"
+echo "  5. Récupérer le CAPE API token après boot CAPE → mettre à jour cape_api_token.txt"
+echo "  6. Récupérer la MISP API key depuis l'UI MISP → misp_api_key.txt"
+echo "  7. Restart orchestrator : docker compose restart orchestrator celery-worker"

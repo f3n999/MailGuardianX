@@ -20,9 +20,8 @@ services:
     ports:
       - "${ORCHESTRATOR_PORT:-8000}:8000"
     environment:
-      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
-      CELERY_BROKER_URL: redis://:${REDIS_PASSWORD}@redis:6379/1
-      CELERY_RESULT_BACKEND: redis://:${REDIS_PASSWORD}@redis:6379/2
+      # URLs Redis lues depuis Docker Secrets à l'intérieur du container (config.py)
+      # Ne pas mettre ${REDIS_PASSWORD} ici — le password n'est PAS une env var host
       CAPE_API_URL: http://cape:8000
       MISP_URL: http://misp:80
       CLAMAV_HOST: clamav
@@ -37,6 +36,12 @@ services:
         target: /run/secrets/secret_key
       - source: database_url
         target: /run/secrets/database_url
+      - source: redis_url
+        target: /run/secrets/redis_url
+      - source: celery_broker_url
+        target: /run/secrets/celery_broker_url
+      - source: celery_result_backend
+        target: /run/secrets/celery_result_backend
       - source: cape_api_token
         target: /run/secrets/cape_api_token
       - source: misp_api_key
@@ -75,9 +80,6 @@ services:
     container_name: mgx-celery-worker
     restart: unless-stopped
     environment:
-      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
-      CELERY_BROKER_URL: redis://:${REDIS_PASSWORD}@redis:6379/1
-      CELERY_RESULT_BACKEND: redis://:${REDIS_PASSWORD}@redis:6379/2
       CAPE_API_URL: http://cape:8000
       CLAMAV_HOST: clamav
       CLAMAV_PORT: 3310
@@ -86,6 +88,12 @@ services:
     secrets:
       - source: database_url
         target: /run/secrets/database_url
+      - source: redis_url
+        target: /run/secrets/redis_url
+      - source: celery_broker_url
+        target: /run/secrets/celery_broker_url
+      - source: celery_result_backend
+        target: /run/secrets/celery_result_backend
       - source: cape_api_token
         target: /run/secrets/cape_api_token
       - source: misp_api_key
@@ -341,6 +349,13 @@ secrets:
     file: ./secrets/secret_key.txt
   database_url:
     file: ./secrets/database_url.txt
+  # Redis URLs (générées par setup-secrets.sh avec mot de passe inclus)
+  redis_url:
+    file: ./secrets/redis_url.txt
+  celery_broker_url:
+    file: ./secrets/celery_broker_url.txt
+  celery_result_backend:
+    file: ./secrets/celery_result_backend.txt
   cape_api_token:
     file: ./secrets/cape_api_token.txt
   cape_db_url:

@@ -95,6 +95,13 @@ class CelerySettings(BaseSettings):
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore", case_sensitive=False)
 
+    @model_validator(mode="after")
+    def resolve_celery_secrets(self) -> "CelerySettings":
+        """Lit les URLs Redis depuis Docker Secrets si disponibles."""
+        self.broker_url = _resolve(self.broker_url, "celery_broker_url")
+        self.result_backend = _resolve(self.result_backend, "celery_result_backend")
+        return self
+
 
 class ScheduleSettings(BaseSettings):
     """Scheduler de scan automatique Graph API."""
@@ -182,6 +189,8 @@ class Settings(BaseSettings):
         self.cape_api_token = _resolve(self.cape_api_token, "cape_api_token")
         self.misp_api_key = _resolve(self.misp_api_key, "misp_api_key")
         self.api_key_pepper = _resolve(self.api_key_pepper, "api_key_pepper")
+        # Redis URL (inclut le mot de passe — généré par setup-secrets.sh)
+        self.redis_url = _resolve(self.redis_url, "redis_url")
         return self
 
     @field_validator("database_url")
