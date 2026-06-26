@@ -25,13 +25,18 @@ from orchestrator.services.orchestrator import OrchestratorService
 
 
 class _CaptureSession:
-    """Faux session DB qui capture les objets `add()` au lieu d'écrire."""
+    """Faux session DB qui capture `add()`/`execute()` au lieu d'écrire."""
 
     def __init__(self) -> None:
         self.added: list = []
+        self.executed: list = []
 
     def add(self, obj) -> None:
         self.added.append(obj)
+
+    async def execute(self, stmt):
+        self.executed.append(stmt)
+        return None
 
 
 @pytest.fixture(autouse=True)
@@ -187,3 +192,10 @@ class TestGraphIngestor:
         assert v.filename == "facture.exe"
         assert v.file_type == "exe"
         assert v.verdict == Verdict.BLOCK.value
+
+        # Idempotence : id déterministe (tenant + message) + DELETE de dédup
+        # AVANT l'insert → un ré-scan chevauchant ne duplique pas la ligne.
+        import uuid as _uuid
+        expected_id = _uuid.uuid5(_uuid.NAMESPACE_URL, "mgx|tenant-xyz|m-persist")
+        assert email.id == str(expected_id)
+        assert len(capture_persistence.executed) == 1  # le DELETE de déduplication

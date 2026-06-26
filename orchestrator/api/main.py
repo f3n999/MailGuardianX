@@ -244,6 +244,9 @@ async def rate_limit_check(
     return x_agent_id
 
 
+ALLOWED_SCOPES = {"analyze", "upload", "admin"}
+
+
 def require_scope(scope: str):
     """Dépendance : exige une clé API valide PORTANT le scope demandé (ou 'admin')."""
     async def _dep(key: AuthenticatedKey = Depends(verify_api_key)) -> AuthenticatedKey:
@@ -261,9 +264,8 @@ async def authorize_key_creation(
     Création de clé API : libre UNIQUEMENT au bootstrap (aucune clé active en base).
     Dès qu'une clé existe, une clé valide avec scope 'admin' est exigée.
     """
-    existing = await services.api_keys.count_active(db)
-    if existing == 0:
-        return  # bootstrap de la toute première clé
+    if not await services.api_keys.any_key_exists(db):
+        return  # bootstrap : aucune clé n'a jamais existé en base
     if not x_api_key:
         raise HTTPException(status_code=401, detail="X-API-Key requis")
     key = await services.api_keys.verify(db, x_api_key)
@@ -499,7 +501,13 @@ async def create_api_key(
 
     Bootstrap : non-authentifié UNIQUEMENT tant qu'aucune clé n'existe en base.
     Dès la première clé créée, ce endpoint exige une clé valide avec scope 'admin'."""
-    scope_list = [s.strip() for s in (scopes or "").split(",") if s.strip()]
+    scope_list = [s.strip().lower() for s in (scopes or "").split(",") if s.strip()]
+    invalid = sorted(set(scope_list) - ALLOWED_SCOPES)
+    if invalid:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Scopes invalides : {invalid} (autorisés : {sorted(ALLOWED_SCOPES)})",
+        )
     issued = await services.api_keys.create(db, name=name, scopes=scope_list)
     return {
         "id": issued.id,

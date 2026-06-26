@@ -24,6 +24,8 @@ from orchestrator.ingestion.graph_client import (
 from orchestrator.models.schemas import (
     AnalysisRequest, AnalysisResponse, AttachmentMetadata, EmailMetadata, FileType,
 )
+from sqlalchemy import delete
+
 from orchestrator.services.orchestrator import OrchestratorService
 from orchestrator.db.session import session_scope
 from orchestrator.models.database import (
@@ -289,9 +291,18 @@ class GraphIngestor:
             mailbox = user.user_principal_name or user.id
             risk_score = max((a.confidence for a in response.attachments), default=0.0)
 
+            # ID déterministe (tenant + message) : ré-analyser le MÊME email lors
+            # d'un scan différentiel chevauchant (overlap 5 min) NE crée PAS de
+            # doublon — sinon /stats et Grafana sur-comptent. On remplace
+            # l'enregistrement existant (DELETE cascade puis insert).
+            email_id = str(uuid.uuid5(uuid.NAMESPACE_URL, f"mgx|{self.tenant_id}|{msg.id}"))
+
             async with session_scope() as db:
+                await db.execute(
+                    delete(EmailAnalysisRow).where(EmailAnalysisRow.id == email_id)
+                )
                 email_row = EmailAnalysisRow(
-                    id=response.task_id,
+                    id=email_id,
                     session_id=session_id,
                     message_id=msg.id,
                     tenant_id=self.tenant_id,

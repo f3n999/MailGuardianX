@@ -39,12 +39,12 @@ class TestRequireScope:
 
 
 class _FakeKeys:
-    def __init__(self, count: int, verify_result=None):
-        self._count = count
+    def __init__(self, any_exists: bool, verify_result=None):
+        self._any_exists = any_exists
         self._verify_result = verify_result
 
-    async def count_active(self, db):
-        return self._count
+    async def any_key_exists(self, db):
+        return self._any_exists
 
     async def verify(self, db, plaintext):
         return self._verify_result
@@ -53,13 +53,21 @@ class _FakeKeys:
 @pytest.mark.asyncio
 class TestAuthorizeKeyCreation:
     async def test_bootstrap_allows_without_key(self, monkeypatch):
-        """Aucune clé en base → création libre (bootstrap)."""
-        monkeypatch.setattr(api_main.services, "api_keys", _FakeKeys(count=0), raising=False)
+        """Aucune clé n'a jamais existé → création libre (bootstrap)."""
+        monkeypatch.setattr(api_main.services, "api_keys", _FakeKeys(any_exists=False), raising=False)
         assert await api_main.authorize_key_creation(db=None, x_api_key=None) is None
 
     async def test_requires_key_when_keys_exist(self, monkeypatch):
-        """Des clés existent + pas de header → 401."""
-        monkeypatch.setattr(api_main.services, "api_keys", _FakeKeys(count=2), raising=False)
+        """Une clé existe déjà + pas de header → 401."""
+        monkeypatch.setattr(api_main.services, "api_keys", _FakeKeys(any_exists=True), raising=False)
+        with pytest.raises(HTTPException) as exc:
+            await api_main.authorize_key_creation(db=None, x_api_key=None)
+        assert exc.value.status_code == 401
+
+    async def test_revoked_all_keys_does_not_reopen_bootstrap(self, monkeypatch):
+        """Backdoor fermée : des clés ont existé (puis révoquées) → toujours
+        admin requis, JAMAIS de réouverture du bootstrap non authentifié."""
+        monkeypatch.setattr(api_main.services, "api_keys", _FakeKeys(any_exists=True), raising=False)
         with pytest.raises(HTTPException) as exc:
             await api_main.authorize_key_creation(db=None, x_api_key=None)
         assert exc.value.status_code == 401
@@ -68,7 +76,7 @@ class TestAuthorizeKeyCreation:
         """Clé valide mais sans scope admin → 403."""
         monkeypatch.setattr(
             api_main.services, "api_keys",
-            _FakeKeys(count=2, verify_result=_key("analyze")), raising=False,
+            _FakeKeys(any_exists=True, verify_result=_key("analyze")), raising=False,
         )
         with pytest.raises(HTTPException) as exc:
             await api_main.authorize_key_creation(db=None, x_api_key="mgx_x")
@@ -78,6 +86,6 @@ class TestAuthorizeKeyCreation:
         """Clé admin valide → autorisé."""
         monkeypatch.setattr(
             api_main.services, "api_keys",
-            _FakeKeys(count=2, verify_result=_key("admin")), raising=False,
+            _FakeKeys(any_exists=True, verify_result=_key("admin")), raising=False,
         )
         assert await api_main.authorize_key_creation(db=None, x_api_key="mgx_x") is None
