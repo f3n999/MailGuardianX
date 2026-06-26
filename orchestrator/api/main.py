@@ -301,7 +301,10 @@ async def analyze_email(
     _: AuthenticatedKey = Depends(verify_api_key),
     agent_id: str = Depends(rate_limit_check),
 ):
-    """Analyse metadata-only — agent envoie les métadonnées + hash."""
+    """Analyse metadata-only — hash + métadonnées seuls, sans contenu de fichier.
+
+    Source d'ingestion nominale = tenant M365 via Graph (scheduler). Ce endpoint
+    sert les intégrations qui ne fournissent qu'un hash + métadonnées."""
     try:
         return await services.orchestrator.analyze(request)
     except Exception as exc:
