@@ -117,6 +117,7 @@ def _build_analysis_request(
             subject_hash=subject_hash,
             received_at=message.received_at,
             has_attachments=True,
+            reply_to=message.reply_to,
             spf_result=message.spf_result,
             dkim_result=message.dkim_result,
             dmarc_result=message.dmarc_result,
