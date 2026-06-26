@@ -14,7 +14,7 @@ services:
       context: .
       dockerfile: Dockerfile
       target: production
-    image: mailguardianx/orchestrator:latest
+    image: mailguardianx/orchestrator:production
     container_name: mgx-orchestrator
     restart: unless-stopped
     ports:
@@ -76,7 +76,7 @@ services:
       context: .
       dockerfile: Dockerfile
       target: worker
-    image: mailguardianx/orchestrator:latest
+    image: mailguardianx/orchestrator:worker
     container_name: mgx-celery-worker
     restart: unless-stopped
     environment:
