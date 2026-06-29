@@ -12,9 +12,9 @@ Pipeline multi-couches qui analyse les emails d'un tenant Microsoft 365 via Grap
 | | |
 |---|---|
 | **Source d'ingestion** | Microsoft 365 / Outlook via Graph API (app-only, Client Credentials). **Unique source.** Pas d'agent sur les postes, pas de parser EML local, pas de plugin Gmail/Outlook. |
-| **Scope de détection** | Anti-ransomware en **pièce jointe** (extension, macro, signatures YARA/ClamAV, IOC MISP, détonation CAPE). |
+| **Scope de détection** | Anti-ransomware en **pièce jointe** (extension, macro, signatures YARA/ClamAV, IOC MISP, détonation CAPE) **+** mots-clés de phishing connus dans le sujet/corps (voir [Détection mots-clés phishing](#détection-mots-clés-phishing) ci-dessous). |
 | **Base de données** | PostgreSQL (pas SQLite). |
-| **Hors-scope actuel** | Détection phishing-texte (homoglyphes, mots-clés, analyse d'URLs, VirusTotal/URLScan) — prévu **après** la première démo. |
+| **Hors-scope actuel** | Homoglyphes, analyse d'URLs, VirusTotal/URLScan — prévu **après** la première démo. |
 
 > Toute mention de SQLite, parser EML, agent poste ou plugin mail dans d'anciens documents est **obsolète** : seule l'ingestion tenant M365/Graph fait foi.
 
@@ -71,11 +71,17 @@ Prometheus → Grafana (dashboard SOC)
 | Étape | Service | Latence | Rôle |
 |------:|--------|--------:|------|
 | 1 | **Redis** | < 5ms | Hash déjà vu → verdict instantané |
-| 2 | **Heuristique** | < 10ms | Extension, double extension, MIME mismatch, SPF/DKIM/DMARC, patterns santé |
+| 2 | **Heuristique** | < 10ms | Extension, double extension, MIME mismatch, SPF/DKIM/DMARC, patterns santé, mots-clés phishing |
 | 3 | **YARA** | < 100ms | 7+ règles ransomware (CryptoAPI, shadow copies, dropper macro/LNK…) |
 | 4 | **ClamAV** | < 500ms | Signatures connues (main.cvd + daily.cvd) |
 | 5 | **MISP** | < 1s | Threat intel — IOCs, campagnes, tags |
 | 6 | **CAPE** | 2-10min | Analyse dynamique en VM Windows isolée, réseau coupé d'Internet (INetSim) |
+
+### Détection mots-clés phishing
+
+En complément de l'analyse de pièce jointe, l'heuristique repère les formulations les plus connues du phishing — urgence artificielle, demande de mot de passe, appel à cliquer immédiatement, etc., réparties en 7 catégories (`orchestrator/core/phishing_keywords.py`). Trois mots-clés ou plus déclenchent un score haut, deux un score moyen ; un mot isolé n'ajoute rien (trop de faux positifs sur du vocabulaire métier courant).
+
+Le point important côté RGPD : ce score se calcule **localement, à l'ingestion**, sur le sujet et l'aperçu du corps tels que reçus de Microsoft Graph — avant que quoi que ce soit ne rejoigne le reste du pipeline. Seul le résultat (un score 0-1 et des noms de catégorie comme `"urgence"` ou `"finance"`) traverse la frontière vers `EmailMetadata`, la base de données et les dashboards. Le texte du sujet, le corps de l'email et le mot-clé littéral qui a déclenché l'alerte ne sont **jamais** stockés ni transmis — exactement le même principe de minimisation que pour les pièces jointes (hash SHA256 plutôt que contenu).
 
 ### Deux topologies de déploiement
 
@@ -229,6 +235,7 @@ Documentation interactive : `https://serveur:8000/docs` (Swagger UI).
 |----------|----------------|
 | Minimisation des données | Hash SHA256 + métadonnées techniques uniquement transmis au backend |
 | Pas de données patient | Corps d'email, champs patients, noms → jamais transmis |
+| Détection mots-clés phishing locale | Sujet + aperçu du corps analysés en mémoire à l'ingestion, jamais persistés ; seul un score 0-1 et des noms de catégorie sortent de cette étape (voir [Détection mots-clés phishing](#détection-mots-clés-phishing)) |
 | Chiffrement en transit | TLS partout (HTTPS, asyncpg SSL, Redis password) |
 | Suppression après analyse | Fichiers envoyés à CAPE supprimés après verdict (TTL configurable) |
 | Restriction d'accès | API keys bcrypt + scopes vérifiés + rate limiting par source |

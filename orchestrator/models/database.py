@@ -99,6 +99,12 @@ class EmailAnalysis(Base):
         DateTime(timezone=True), nullable=False, index=True
     )
 
+    # Détection mots-clés phishing (sujet + aperçu du corps). Calculé côté
+    # ingestion sur texte brut jamais persisté — seul le score et les noms
+    # de catégorie (ex. "urgence", "finance") arrivent jusqu'ici.
+    keyword_score: Mapped[float] = mapped_column(Float, default=0.0)
+    keyword_categories: Mapped[list[str]] = mapped_column(JSONB, default=list)
+
     # Verdict global
     overall_verdict: Mapped[str] = mapped_column(String(32), default="pending", index=True)
     stage: Mapped[str] = mapped_column(String(32), default="received")

@@ -73,6 +73,16 @@ class EmailMetadata(BaseModel):
     spf_result: Optional[str] = None
     dkim_result: Optional[str] = None
     dmarc_result: Optional[str] = None
+    keyword_score: float = Field(
+        0.0, ge=0.0, le=1.0,
+        description="Score mots-clés phishing, calculé côté ingestion sur le texte brut "
+                    "(jamais transmis). Voir core/phishing_keywords.py.",
+    )
+    keyword_categories: list[str] = Field(
+        default_factory=list,
+        description="Catégories de mots-clés déclenchées (urgence, finance, ...) — "
+                    "jamais le texte ou le mot-clé littéral.",
+    )
 
     @field_validator("sender")
     @classmethod

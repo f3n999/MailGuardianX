@@ -194,6 +194,22 @@ class TestEmailContext:
         result = engine.score_email_context(req)
         assert "reply_to_mismatch" not in str(result["reasons"])
 
+    def test_keyword_score_contributes(self, engine):
+        """keyword_score (calculé côté ingestion) doit remonter dans le score
+        et les raisons — sans jamais réapparaître en texte brut ici."""
+        req = _make_request()
+        req.email.keyword_score = 0.45
+        req.email.keyword_categories = ["urgence", "compte_compromis"]
+        result = engine.score_email_context(req)
+        assert result["score"] >= 0.45
+        assert "phishing_keywords:urgence,compte_compromis" in str(result["reasons"])
+
+    def test_zero_keyword_score_no_reason(self, engine):
+        req = _make_request()
+        assert req.email.keyword_score == 0.0
+        result = engine.score_email_context(req)
+        assert "phishing_keywords" not in str(result["reasons"])
+
 
 # ──────────────────── Tests Pipeline Complet ────────────────────
 

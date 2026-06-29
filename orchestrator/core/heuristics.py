@@ -143,6 +143,15 @@ class HeuristicEngine:
                 score += 0.30
                 reasons.append(f"reply_to_mismatch:{reply_domain}")
 
+        # 3c. Mots-clés phishing (sujet/corps) — score déjà calculé côté
+        #     ingestion, sur texte qui n'a jamais traversé cette frontière
+        #     (voir core/phishing_keywords.py). On ne reçoit ici qu'un score
+        #     0-1 et des noms de catégorie, jamais le texte ni le mot trouvé.
+        if email.keyword_score > 0:
+            score += email.keyword_score
+            categories = ",".join(email.keyword_categories) or "?"
+            reasons.append(f"phishing_keywords:{categories}")
+
         # 4. Envoi de masse
         if email.recipient_count > 50:
             score += 0.15
