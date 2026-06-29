@@ -55,7 +55,7 @@ services:
       # Topologie B (deux machines) : surcharger CAPE_API_URL dans .env avec
       # l'IP de la machine sandbox, ex. CAPE_API_URL=http://192.0.2.10:8000
       CAPE_API_URL: ${CAPE_API_URL:-http://cape:8000}
-      MISP_URL: http://misp:80
+      MISP_URL: https://misp
       CLAMAV_HOST: clamav
       CLAMAV_PORT: 3310
       YARA_RULES_PATH: /app/yara-rules
@@ -111,12 +111,15 @@ services:
     image: mailguardianx/orchestrator:worker
     container_name: mgx-celery-worker
     restart: unless-stopped
+    healthcheck:
+      disable: true
     environment:
       # Topologie A (un serveur) : laisser la valeur par défaut, qui résout
       # vers le conteneur cape de cette même stack (profil "sandbox" actif).
       # Topologie B (deux machines) : surcharger CAPE_API_URL dans .env avec
       # l'IP de la machine sandbox, ex. CAPE_API_URL=http://192.0.2.10:8000
       CAPE_API_URL: ${CAPE_API_URL:-http://cape:8000}
+      MISP_URL: https://misp
       CLAMAV_HOST: clamav
       CLAMAV_PORT: 3310
       YARA_RULES_PATH: /app/yara-rules
@@ -205,8 +208,13 @@ services:
     # Pas de port exposé → reste sur le réseau isolé
 
   # ════════════════════ MISP ═════════════════════════════════
+  # Image tout-en-un : MySQL, Redis et Apache sont intégrés.
+  # Pas de dépendance sur notre mysql ou redis externes.
+  # Credentials par défaut au premier démarrage :
+  #   admin@admin.test / admin  → à changer via l'UI après boot
+  # API key : récupérer depuis /users/view/me.json après login.
   misp:
-    image: coolacid/misp-docker:latest
+    image: harvarditsecurity/misp:latest
     container_name: mgx-misp
     restart: unless-stopped
     ports:
@@ -214,25 +222,8 @@ services:
       - "8081:80"
     volumes:
       - misp-data:/var/www/MISP
-    environment:
-      MYSQL_HOST: mysql
-      MYSQL_DATABASE: misp
-      MYSQL_USER: misp
-      MISP_BASEURL: ${MISP_BASEURL:-https://misp.mailguardianx.local}
-    secrets:
-      - source: mysql_misp_password
-        target: /run/secrets/mysql_misp_password
-      - source: misp_admin_email
-        target: /run/secrets/misp_admin_email
-      - source: misp_admin_passphrase
-        target: /run/secrets/misp_admin_passphrase
     networks:
       - internal
-    depends_on:
-      mysql:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
 
   # ════════════════════ POSTGRES ═════════════════════════════
   postgres:
