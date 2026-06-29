@@ -18,6 +18,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Optional
 
+from orchestrator.core.phishing_keywords import score_phishing_keywords
 from orchestrator.ingestion.graph_client import (
     GraphAttachment, GraphClient, GraphMessage, GraphUser,
 )
@@ -108,6 +109,12 @@ def _build_analysis_request(
     subject_hash = hashlib.sha256(message.subject.encode("utf-8", errors="ignore")).hexdigest()
     sender = message.sender_address or "unknown@unknown.invalid"
     domain = message.sender_domain or "unknown.invalid"
+
+    # Calculé ici, sur le texte brut encore en mémoire (message.subject /
+    # body_preview) — le texte lui-même s'arrête là, seul le score et les
+    # catégories rejoignent EmailMetadata. Voir core/phishing_keywords.py.
+    keywords = score_phishing_keywords(message.subject, message.body_preview)
+
     return AnalysisRequest(
         agent_id=f"graph-ingestor:{tenant_id}",
         hospital_id=tenant_id,
@@ -123,6 +130,8 @@ def _build_analysis_request(
             spf_result=message.spf_result,
             dkim_result=message.dkim_result,
             dmarc_result=message.dmarc_result,
+            keyword_score=keywords["score"],
+            keyword_categories=keywords["categories"],
         ),
         attachments=attachments,
         request_deep_analysis=False,
@@ -265,7 +274,7 @@ class GraphIngestor:
         )
 
         # Persistance PostgreSQL — audit RGPD + alimentation /stats + Grafana
-        await self._persist_analysis(user, msg, attachment_metas, response, session_id)
+        await self._persist_analysis(user, msg, attachment_metas, response, request.email, session_id)
 
         if stats:
             stats.record_verdict(response)
@@ -277,6 +286,7 @@ class GraphIngestor:
         msg: GraphMessage,
         attachment_metas: list[AttachmentMetadata],
         response: AnalysisResponse,
+        email_meta: EmailMetadata,
         session_id: Optional[str] = None,
     ) -> None:
         """
@@ -319,6 +329,8 @@ class GraphIngestor:
                     recipient_count=msg.recipient_count,
                     has_attachments=True,
                     received_at=msg.received_at,
+                    keyword_score=email_meta.keyword_score,
+                    keyword_categories=email_meta.keyword_categories,
                     overall_verdict=response.overall_verdict.value,
                     stage=response.stage.value,
                     risk_score=risk_score,

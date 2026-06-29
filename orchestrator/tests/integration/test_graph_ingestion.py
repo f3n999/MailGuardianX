@@ -199,3 +199,43 @@ class TestGraphIngestor:
         expected_id = _uuid.uuid5(_uuid.NAMESPACE_URL, "mgx|tenant-xyz|m-persist")
         assert email.id == str(expected_id)
         assert len(capture_persistence.executed) == 1  # le DELETE de déduplication
+
+    async def test_keyword_score_computed_and_persisted(
+        self, orchestrator, capture_persistence
+    ):
+        """Le score mots-clés est calculé à l'ingestion (sujet/corps en clair,
+        jamais persistés) et seul le score + les catégories arrivent en base."""
+        msg = GraphMessage(
+            id="m-phish", subject="Urgent : compte bloqué",
+            received_at=datetime.now(timezone.utc),
+            sender_address="support@evil.ru", sender_name="Support",
+            reply_to=None, recipient_count=1, has_attachments=True,
+            body_preview="Cliquez ici immédiatement et confirmer votre mot de passe.",
+            spf_result="pass", dkim_result="pass", dmarc_result="pass",
+        )
+        att = GraphAttachment(
+            id="a1", name="document.pdf", content_type="application/pdf", size=20_000,
+        )
+        content = b"%PDF-1.4\n%clean document content"
+
+        graph = AsyncMock()
+        graph.list_user_messages = AsyncMock(return_value=[msg])
+        graph.list_attachments = AsyncMock(return_value=[att])
+        graph.download_attachment = AsyncMock(return_value=content)
+
+        ingestor = GraphIngestor(graph, orchestrator, tenant_id="tenant-xyz")
+        user = GraphUser(id="u1", user_principal_name="victim@hopital.fr", display_name="Victim")
+
+        await ingestor.scan_user_inbox(user, session_id="sess-456")
+
+        emails = [o for o in capture_persistence.added if isinstance(o, EmailAnalysisRow)]
+        assert len(emails) == 1
+        email = emails[0]
+
+        assert email.keyword_score == 0.45  # ≥3 mots-clés → palier haut
+        assert "urgence" in email.keyword_categories
+        assert "compte_compromis" in email.keyword_categories
+        assert "appels_action" in email.keyword_categories
+        # Le sujet/corps en clair ne doit apparaître nulle part sur la ligne persistée
+        assert "compte bloqué" not in str(vars(email))
+        assert "mot de passe" not in str(vars(email))
