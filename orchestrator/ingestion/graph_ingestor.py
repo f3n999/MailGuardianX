@@ -276,6 +276,28 @@ class GraphIngestor:
         # Persistance PostgreSQL — audit RGPD + alimentation /stats + Grafana
         await self._persist_analysis(user, msg, attachment_metas, response, request.email, session_id)
 
+        # Action post-verdict : alerte sécurité si BLOCK (mail reste en boîte)
+        if response.overall_verdict.value == "block":
+            first_att = response.attachments[0] if response.attachments else None
+            first_meta = attachment_metas[0] if attachment_metas else None
+            alerted = await self.graph.send_security_alert(
+                user_upn=user.user_principal_name or user.id,
+                subject=msg.subject,
+                filename=first_meta.filename if first_meta else "inconnu",
+                threat_name=first_att.threat_name or "" if first_att else "",
+                sender_address=msg.sender_address or "inconnu",
+            )
+            if alerted:
+                logger.info(
+                    "[%s] BLOCK — alerte sécurité envoyée (msg: %s)",
+                    mailbox, msg.subject[:50],
+                )
+            else:
+                logger.warning(
+                    "[%s] BLOCK — send_security_alert échoué (Mail.Send manquant ?)",
+                    mailbox,
+                )
+
         if stats:
             stats.record_verdict(response)
         return response
