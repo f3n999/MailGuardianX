@@ -227,8 +227,8 @@ class GraphClient:
         try:
             data = await self._get(f"/users/{user_id}/messages", params=params)
         except httpx.HTTPStatusError as exc:
-            if exc.response.status_code == 404:
-                logger.warning("Boîte introuvable pour %s (pas de licence Exchange ?)", user_id)
+            if exc.response.status_code in (404, 400):
+                logger.warning("Boîte non disponible pour %s (licence Exchange pas encore provisionnée ?)", user_id)
                 return []
             if exc.response.status_code in (401, 403):
                 logger.error(
