@@ -212,7 +212,6 @@ class GraphClient:
         params = {
             "$top": str(min(top, 999)),
             "$select": select,
-            "$orderby": "receivedDateTime desc",
         }
 
         filters = []
