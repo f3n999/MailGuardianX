@@ -3,6 +3,7 @@ Client Microsoft Graph API — mode app-only (Client Credentials).
 
 Permissions requises (admin consent) :
   - Mail.Read                 (lecture des boîtes du tenant)
+  - Mail.Send                 (envoi d'alertes sécurité depuis l'admin)
   - User.Read.All             (énumération des users)
 
 Pas d'interaction utilisateur — l'application s'authentifie elle-même
@@ -282,29 +283,76 @@ class GraphClient:
 
     # ────────── Actions ──────────
 
-    async def move_to_junk(self, user_id: str, message_id: str) -> bool:
+    async def send_security_alert(
+        self,
+        user_upn: str,
+        subject: str,
+        filename: str,
+        threat_name: str,
+        sender_address: str,
+        admin_upn: str = "MOHA@MailGuardianX.onmicrosoft.com",
+    ) -> bool:
         """
-        Déplace un message vers le dossier Junk Email de l'utilisateur.
-        Requiert Mail.ReadWrite (application permission + admin consent).
+        Envoie un mail d'alerte sécurité à l'utilisateur depuis l'admin.
+        Le mail original reste en boîte — l'utilisateur est juste prévenu.
+        Requiert Mail.Send (application permission + admin consent).
         """
+        body_html = f"""
+<div style="font-family:Arial,sans-serif;max-width:600px;border:2px solid #d32f2f;border-radius:8px;padding:20px;background:#fff3f3">
+  <h2 style="color:#d32f2f;margin-top:0">⚠️ Alerte Sécurité — MailGuardianX</h2>
+  <p>Bonjour,</p>
+  <p>Notre système a détecté un email potentiellement dangereux dans votre boîte de réception.</p>
+  <table style="width:100%;border-collapse:collapse;margin:16px 0">
+    <tr style="background:#f5f5f5">
+      <td style="padding:8px;font-weight:bold;width:40%">Expéditeur suspect</td>
+      <td style="padding:8px">{sender_address}</td>
+    </tr>
+    <tr>
+      <td style="padding:8px;font-weight:bold">Sujet (original)</td>
+      <td style="padding:8px">{subject}</td>
+    </tr>
+    <tr style="background:#f5f5f5">
+      <td style="padding:8px;font-weight:bold">Pièce jointe détectée</td>
+      <td style="padding:8px"><strong style="color:#d32f2f">{filename}</strong></td>
+    </tr>
+    <tr>
+      <td style="padding:8px;font-weight:bold">Menace identifiée</td>
+      <td style="padding:8px">{threat_name or "Fichier à haut risque"}</td>
+    </tr>
+  </table>
+  <p><strong>⛔ Ne pas ouvrir la pièce jointe.</strong> Ce fichier a été identifié comme potentiellement malveillant.</p>
+  <p>Si vous attendiez ce message, contactez votre responsable informatique avant toute action.</p>
+  <hr style="border:1px solid #eee;margin:16px 0"/>
+  <p style="color:#888;font-size:12px">Ce message est généré automatiquement par MailGuardianX — système de protection anti-ransomware.<br/>Ne pas répondre à cet email.</p>
+</div>
+"""
         try:
             headers = await self._headers()
+            payload = {
+                "message": {
+                    "subject": f"⚠️ [MailGuardianX] Alerte — Email suspect détecté dans votre boîte",
+                    "body": {"contentType": "HTML", "content": body_html},
+                    "toRecipients": [{"emailAddress": {"address": user_upn}}],
+                    "importance": "high",
+                },
+                "saveToSentItems": False,
+            }
             async with httpx.AsyncClient(timeout=15) as client:
                 response = await client.post(
-                    f"{GRAPH_BASE}/users/{user_id}/messages/{message_id}/move",
-                    json={"destinationId": "junkemail"},
+                    f"{GRAPH_BASE}/users/{admin_upn}/sendMail",
+                    json=payload,
                     headers=headers,
                 )
-            if response.status_code == 201:
-                logger.info("Message %s déplacé vers Junk pour %s", message_id[:20], user_id)
+            if response.status_code == 202:
+                logger.info("Alerte sécurité envoyée à %s", user_upn)
                 return True
             logger.warning(
-                "move_to_junk échoué pour %s: HTTP %d — %s",
-                user_id, response.status_code, response.text[:200],
+                "send_security_alert échoué pour %s: HTTP %d — %s",
+                user_upn, response.status_code, response.text[:200],
             )
             return False
         except Exception as exc:
-            logger.error("move_to_junk exception: %s", exc)
+            logger.error("send_security_alert exception: %s", exc)
             return False
 
     # ────────── Attachments ──────────
