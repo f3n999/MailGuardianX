@@ -1,15 +1,25 @@
-# 🛡️ MailGuardianX
+<p align="center">
+  <img src="MailGuardianX_Logo.png" alt="MailGuardianX" width="360">
+</p>
 
-> **Défense anti-ransomware par email pour le secteur santé**
-> Projet de fin d'année, Oteria Cyber School, promo B3 2025-2026
+<h1 align="center">🛡️ MailGuardianX</h1>
 
-> **Email-borne ransomware defense for the healthcare sector**
-> Final-year project, Oteria Cyber School, B3 class of 2025-2026
+<p align="center">
+  <b>Défense anti-ransomware par email pour le secteur santé</b><br>
+  Projet de fin d'année, Oteria Cyber School, promo B3 2025-2026
+</p>
 
-![Python](https://img.shields.io/badge/Python-3.11-blue)
-![FastAPI](https://img.shields.io/badge/FastAPI-async-009688)
-![Docker](https://img.shields.io/badge/Docker-Compose%20v2-2496ED)
-![License](https://img.shields.io/badge/License-GPLv3-green)
+<p align="center">
+  <i>Email-borne ransomware defense for the healthcare sector</i><br>
+  Final-year project, Oteria Cyber School, B3 class of 2025-2026
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Python-3.11-blue" alt="Python 3.11">
+  <img src="https://img.shields.io/badge/FastAPI-async-009688" alt="FastAPI">
+  <img src="https://img.shields.io/badge/Docker-Compose%20v2-2496ED" alt="Docker Compose v2">
+  <img src="https://img.shields.io/badge/License-GPLv3-green" alt="License GPLv3">
+</p>
 
 ## 📑 Sommaire / Contents
 
