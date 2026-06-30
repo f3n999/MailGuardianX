@@ -2,7 +2,7 @@
   <img src="MailGuardianX_Logo.png" alt="MailGuardianX" width="360">
 </p>
 
-<h1 align="center">🛡️ MailGuardianX</h1>
+<h1 align="center">MailGuardianX</h1>
 
 <p align="center">
   <b>Défense anti-ransomware par email pour le secteur santé</b><br>
@@ -21,27 +21,27 @@
   <img src="https://img.shields.io/badge/License-GPLv3-green" alt="License GPLv3">
 </p>
 
-## 📑 Sommaire / Contents
+## Sommaire / Contents
 
-- [💡 En deux mots / In a nutshell](#-en-deux-mots--in-a-nutshell)
-- [🚨 Le problème / The problem](#-le-problème--the-problem)
-- [🧩 Ce qu'on a construit / What we built](#-ce-quon-a-construit--what-we-built)
-- [🎯 Périmètre / Scope](#-périmètre-ce-qui-est-dedans-et-ce-qui-ne-lest-pas--scope-what-is-in-and-what-is-not)
-- [🔄 Comment ça marche / How it works](#-comment-ça-marche-la-chaîne-danalyse--how-it-works-the-analysis-chain)
-  - [📊 Le détail des étapes / The cumulative pipeline](#-le-détail-des-étapes--the-cumulative-pipeline)
-  - [🎣 Détection de phishing et RGPD / Phishing detection and GDPR](#-la-détection-de-phishing-et-pourquoi-elle-respecte-le-rgpd--phishing-detection-and-why-it-respects-gdpr)
-  - [🧭 Deux façons de déployer / Two ways to deploy](#-deux-façons-de-déployer-le-projet--two-ways-to-deploy)
-- [🧰 Stack technique / Tech stack](#-stack-technique--tech-stack)
-- [🚀 Démarrage rapide / Quick start](#-démarrage-rapide--quick-start)
-- [📁 Structure du repo / Repo structure](#-structure-du-repo--repo-structure)
-- [🔌 L'API publique / The public API](#-lapi-publique-extrait--the-public-api-excerpt)
-- [🔐 Conformité RGPD / GDPR compliance](#-conformité-rgpd-et-santé--gdpr-and-healthcare-compliance)
-- [🧪 Tests](#-tests)
-- [🔒 Sécurité en production / Production security](#-sécurité-en-production--production-security)
-- [👥 Équipe / Team](#-équipe--team)
-- [📄 Licence / License](#-licence--license)
+- [En deux mots / In a nutshell](#en-deux-mots--in-a-nutshell)
+- [Le problème / The problem](#le-problème--the-problem)
+- [Ce qu'on a construit / What we built](#ce-quon-a-construit--what-we-built)
+- [Périmètre / Scope](#périmètre-ce-qui-est-dedans-et-ce-qui-ne-lest-pas--scope-what-is-in-and-what-is-not)
+- [Comment ça marche / How it works](#comment-ça-marche-la-chaîne-danalyse--how-it-works-the-analysis-chain)
+  - [Le détail des étapes / The cumulative pipeline](#le-détail-des-étapes--the-cumulative-pipeline)
+  - [Détection de phishing et RGPD / Phishing detection and GDPR](#la-détection-de-phishing-et-pourquoi-elle-respecte-le-rgpd--phishing-detection-and-why-it-respects-gdpr)
+  - [Deux façons de déployer / Two ways to deploy](#deux-façons-de-déployer-le-projet--two-ways-to-deploy)
+- [Stack technique / Tech stack](#stack-technique--tech-stack)
+- [Démarrage rapide / Quick start](#démarrage-rapide--quick-start)
+- [Structure du repo / Repo structure](#structure-du-repo--repo-structure)
+- [L'API publique / The public API](#lapi-publique-extrait--the-public-api-excerpt)
+- [Conformité RGPD / GDPR compliance](#conformité-rgpd-et-santé--gdpr-and-healthcare-compliance)
+- [Tests](#tests)
+- [Sécurité en production / Production security](#sécurité-en-production--production-security)
+- [Équipe / Team](#équipe--team)
+- [Licence / License](#licence--license)
 
-## 💡 En deux mots / In a nutshell
+## En deux mots / In a nutshell
 
 **FR.** MailGuardianX surveille la boîte mail d'un hôpital et bloque les emails piégés avant qu'ils ne fassent des dégâts. Concrètement, il se branche sur la messagerie Microsoft 365 de l'établissement, récupère les nouveaux emails et leurs pièces jointes, les passe dans une série de contrôles de sécurité, et rend un verdict en quelques secondes : sûr, suspect, ou dangereux. Tout ça sans qu'aucune information sur les patients ne sorte de l'hôpital. Seules des données techniques anonymes (l'empreinte d'un fichier, pas son contenu) sont analysées.
 
@@ -51,13 +51,13 @@ Pour situer : un ransomware, c'est un logiciel malveillant qui chiffre les fichi
 
 For context: ransomware is malicious software that encrypts an organization's files and demands a ransom to unlock them. Hospitals are a prime target, and the most common entry point is still an email attachment. That is exactly what MailGuardianX is built to stop.
 
-## 🚨 Le problème / The problem
+## Le problème / The problem
 
 **FR.** Les hôpitaux sont aujourd'hui la cible numéro un des attaques par ransomware, et le vecteur principal reste l'email avec une pièce jointe piégée. Les solutions du marché existent (Proofpoint, Fortinet, et d'autres), mais elles coûtent entre 10 000 et 50 000 euros par an, restent des boîtes noires dont on ne sait pas vraiment comment elles décident, et sont souvent pensées pour le cloud d'abord. Ce dernier point pose un vrai problème avec les données patient, soumises au RGPD, qui ne devraient pas transiter par des serveurs externes.
 
 **EN.** Hospitals are today the number-one target for ransomware attacks, and the main vector is still an email with a booby-trapped attachment. Commercial solutions exist (Proofpoint, Fortinet, and others), but they cost between 10,000 and 50,000 euros per year, remain black boxes whose decision-making is opaque, and are often cloud-first by design. That last point is a real issue for patient data, which falls under GDPR and should not pass through external servers.
 
-## 🧩 Ce qu'on a construit / What we built
+## Ce qu'on a construit / What we built
 
 **FR.** MailGuardianX est une alternative open source à ces solutions. Trois choix de conception résument l'approche :
 
@@ -75,7 +75,7 @@ Côté branchement, rien à installer sur les postes des employés. MailGuardian
 
 On the integration side, there is nothing to install on staff workstations. MailGuardianX connects directly at the level of the organization's Microsoft 365 account (the "tenant") through Microsoft's official API, called Graph. The hospital grants this access once, and the system handles the rest on its own.
 
-## 🎯 Périmètre, ce qui est dedans et ce qui ne l'est pas / Scope, what is in and what is not
+## Périmètre, ce qui est dedans et ce qui ne l'est pas / Scope, what is in and what is not
 
 **FR.** Le périmètre est volontairement resserré pour cette première version, histoire de faire une chose et de bien la faire.
 
@@ -98,7 +98,7 @@ On the integration side, there is nothing to install on staff workstations. Mail
 > **FR.** Si vous croisez d'anciens documents qui parlent de SQLite, d'un lecteur EML, d'un agent sur les postes ou d'un plugin mail, ignorez-les : ils sont obsolètes. Seule l'ingestion via le tenant M365 et l'API Graph fait foi.
 > **EN.** If you come across older documents mentioning SQLite, an EML reader, an endpoint agent or a mail plugin, ignore them: they are obsolete. Only ingestion through the M365 tenant and the Graph API is authoritative.
 
-## 🔄 Comment ça marche, la chaîne d'analyse / How it works, the analysis chain
+## Comment ça marche, la chaîne d'analyse / How it works, the analysis chain
 
 **FR.** Le cœur de MailGuardianX, c'est une chaîne de contrôles que chaque pièce jointe traverse les uns après les autres. L'idée est simple et efficace : on commence par les vérifications les plus rapides et les moins coûteuses, et on ne passe à l'étape suivante, plus lente mais plus poussée, que si le doute persiste. Dès qu'une étape juge un fichier dangereux, elle peut tout arrêter et émettre un verdict de blocage, sans aller plus loin. C'est ce qui permet de rendre un avis en quelques millisecondes dans la grande majorité des cas, tout en gardant une analyse en profondeur pour les fichiers vraiment suspects.
 
@@ -137,12 +137,12 @@ Prometheus vers Grafana (le tableau de bord du SOC)
 
 Étape par étape, en clair :
 
-1. **⚡ Cache Redis.** A-t-on déjà vu ce fichier exact récemment ? Si oui, on connaît déjà la réponse, verdict immédiat.
-2. **🔍 Heuristique.** Une série de règles simples et rapides : l'extension est-elle louche, y a-t-il une double extension (le classique `facture.pdf.exe`), le type de fichier annoncé correspond-il au vrai contenu, les protections anti-usurpation de l'email (SPF, DKIM, DMARC) sont-elles valides, le message contient-il des mots-clés de phishing connus.
-3. **🧬 YARA.** Des règles qui cherchent des motifs typiques de ransomware à l'intérieur du fichier (appels à l'API de chiffrement de Windows, suppression des sauvegardes système, macros et raccourcis piégés). Sept règles maison tournent ici, directement en mémoire pour aller vite.
-4. **🦠 ClamAV.** L'antivirus open source, qui compare le fichier à une base de signatures de malwares déjà connus.
-5. **🌐 MISP.** Une base de renseignement sur les menaces (threat intelligence) : ce fichier ou cet expéditeur sont-ils associés à une campagne d'attaque déjà répertoriée.
-6. **💣 Sandbox CAPE.** L'artillerie lourde. Le fichier est ouvert et exécuté pour de vrai, mais dans une machine virtuelle Windows totalement isolée et coupée d'Internet. On observe son comportement : tente-t-il de chiffrer des fichiers, de contacter un serveur, de se propager. C'est lent (de 2 à 10 minutes) mais c'est le seul moyen de démasquer un malware inconnu de toutes les bases.
+1. **Cache Redis.** A-t-on déjà vu ce fichier exact récemment ? Si oui, on connaît déjà la réponse, verdict immédiat.
+2. **Heuristique.** Une série de règles simples et rapides : l'extension est-elle louche, y a-t-il une double extension (le classique `facture.pdf.exe`), le type de fichier annoncé correspond-il au vrai contenu, les protections anti-usurpation de l'email (SPF, DKIM, DMARC) sont-elles valides, le message contient-il des mots-clés de phishing connus.
+3. **YARA.** Des règles qui cherchent des motifs typiques de ransomware à l'intérieur du fichier (appels à l'API de chiffrement de Windows, suppression des sauvegardes système, macros et raccourcis piégés). Sept règles maison tournent ici, directement en mémoire pour aller vite.
+4. **ClamAV.** L'antivirus open source, qui compare le fichier à une base de signatures de malwares déjà connus.
+5. **MISP.** Une base de renseignement sur les menaces (threat intelligence) : ce fichier ou cet expéditeur sont-ils associés à une campagne d'attaque déjà répertoriée.
+6. **Sandbox CAPE.** L'artillerie lourde. Le fichier est ouvert et exécuté pour de vrai, mais dans une machine virtuelle Windows totalement isolée et coupée d'Internet. On observe son comportement : tente-t-il de chiffrer des fichiers, de contacter un serveur, de se propager. C'est lent (de 2 à 10 minutes) mais c'est le seul moyen de démasquer un malware inconnu de toutes les bases.
 
 **EN.** The heart of MailGuardianX is a chain of checks that every attachment passes through one after another. The idea is simple and effective: we start with the fastest and cheapest checks, and only move on to the next, slower but more thorough step if doubt remains. As soon as a step decides a file is dangerous, it can stop everything and issue a block verdict without going further. This is what makes it possible to return an opinion in a few milliseconds in the vast majority of cases, while keeping a deep analysis for the genuinely suspicious files.
 
@@ -181,14 +181,14 @@ Prometheus to Grafana (the SOC dashboard)
 
 Step by step, in plain terms:
 
-1. **⚡ Redis cache.** Have we already seen this exact file recently? If so, we already know the answer, instant verdict.
-2. **🔍 Heuristics.** A set of simple, fast rules: is the extension shady, is there a double extension (the classic `invoice.pdf.exe`), does the declared file type match the real content, are the email's anti-spoofing protections (SPF, DKIM, DMARC) valid, does the message contain known phishing keywords.
-3. **🧬 YARA.** Rules that look for patterns typical of ransomware inside the file (calls to Windows encryption APIs, deletion of system backups, booby-trapped macros and shortcuts). Seven in-house rules run here, directly in memory for speed.
-4. **🦠 ClamAV.** The open-source antivirus, which compares the file against a database of already-known malware signatures.
-5. **🌐 MISP.** A threat intelligence database: is this file or sender associated with an already-catalogued attack campaign.
-6. **💣 CAPE sandbox.** The heavy artillery. The file is actually opened and run, but inside a fully isolated Windows virtual machine cut off from the internet. We watch its behavior: does it try to encrypt files, contact a server, spread. It is slow (2 to 10 minutes) but it is the only way to unmask malware unknown to every database.
+1. **Redis cache.** Have we already seen this exact file recently? If so, we already know the answer, instant verdict.
+2. **Heuristics.** A set of simple, fast rules: is the extension shady, is there a double extension (the classic `invoice.pdf.exe`), does the declared file type match the real content, are the email's anti-spoofing protections (SPF, DKIM, DMARC) valid, does the message contain known phishing keywords.
+3. **YARA.** Rules that look for patterns typical of ransomware inside the file (calls to Windows encryption APIs, deletion of system backups, booby-trapped macros and shortcuts). Seven in-house rules run here, directly in memory for speed.
+4. **ClamAV.** The open-source antivirus, which compares the file against a database of already-known malware signatures.
+5. **MISP.** A threat intelligence database: is this file or sender associated with an already-catalogued attack campaign.
+6. **CAPE sandbox.** The heavy artillery. The file is actually opened and run, but inside a fully isolated Windows virtual machine cut off from the internet. We watch its behavior: does it try to encrypt files, contact a server, spread. It is slow (2 to 10 minutes) but it is the only way to unmask malware unknown to every database.
 
-### 📊 Le détail des étapes / The cumulative pipeline
+### Le détail des étapes / The cumulative pipeline
 
 | Étape / Step | Service | Latence / Latency | Rôle / Role |
 | --- | --- | --- | --- |
@@ -199,7 +199,7 @@ Step by step, in plain terms:
 | 5 | MISP | < 1 s | Threat intel : IOCs, campagnes, tags |
 | 6 | CAPE | 2 à 10 min / 2 to 10 min | Analyse dynamique en VM Windows isolée, réseau coupé (INetSim) / Dynamic analysis in an isolated Windows VM, network cut off (INetSim) |
 
-### 🎣 La détection de phishing, et pourquoi elle respecte le RGPD / Phishing detection, and why it respects GDPR
+### La détection de phishing, et pourquoi elle respecte le RGPD / Phishing detection, and why it respects GDPR
 
 **FR.** En plus de l'analyse des pièces jointes, l'étape heuristique lit le texte de l'email pour repérer les formulations classiques du phishing : l'urgence artificielle (« votre compte sera fermé dans 24h »), la demande de mot de passe, l'invitation à cliquer tout de suite. Ces formulations sont rangées en six catégories dans le fichier `orchestrator/core/phishing_keywords.py`. La logique de scoring est calibrée pour éviter les fausses alertes : trois mots-clés ou plus donnent un score élevé, deux un score moyen, et un seul mot ne déclenche rien, parce que beaucoup de termes (« urgent », « facture ») sont parfaitement normaux dans un échange professionnel.
 
@@ -209,7 +209,7 @@ Le point crucial côté RGPD : ce score est calculé localement, au moment de l'
 
 The crucial point for GDPR: this score is computed locally, at ingestion time, on the subject and body preview as received from Microsoft Graph, before anything moves further down the chain. Only the result crosses the boundary into the database and the dashboards: a score between 0 and 1, and category names such as `"urgence"` or `"finance"`. The subject text, the message body and the exact word that triggered the alert are never stored or transmitted. This is the same minimization principle as for attachments, where we keep only the SHA256 fingerprint and never the content.
 
-### 🧭 Deux façons de déployer le projet / Two ways to deploy
+### Deux façons de déployer le projet / Two ways to deploy
 
 **FR.** La sandbox CAPE peut tourner de deux manières, au choix selon le matériel disponible.
 
@@ -223,7 +223,7 @@ The crucial point for GDPR: this score is computed locally, at ingestion time, o
 
 Détail des deux options / Details on both options: [GUIDE-DEPLOIEMENT.md](GUIDE-DEPLOIEMENT.md#choisir-sa-topologie).
 
-## 🧰 Stack technique / Tech stack
+## Stack technique / Tech stack
 
 | Composant / Component | Rôle / Role |
 | --- | --- |
@@ -240,15 +240,15 @@ Détail des deux options / Details on both options: [GUIDE-DEPLOIEMENT.md](GUIDE
 | Prometheus + Grafana | Observabilité / Observability |
 | Docker Compose v2 | Orchestration |
 
-## 🚀 Démarrage rapide / Quick start
+## Démarrage rapide / Quick start
 
-### 📋 Pré-requis / Requirements
+### Pré-requis / Requirements
 
 - Ubuntu Server 22.04 ou 24.04 LTS (recommandé : 64 Go RAM, 32 cœurs, 2 To)
 - Docker Engine 24.0 ou plus, avec Docker Compose v2
 - Une application Azure AD avec les permissions Graph `Mail.Read` et `User.Read.All` (consentement administrateur)
 
-### 📦 Installation
+### Installation
 
 ```bash
 git clone https://github.com/f3n999/MailGuardianX.git mailguardianx
@@ -285,7 +285,7 @@ curl -X POST http://localhost:8000/api/v1/admin/keys \
 
 **EN.** The full guide ([GUIDE-DEPLOIEMENT.md](GUIDE-DEPLOIEMENT.md)) covers everything: both topologies, the step-by-step install of the dedicated CAPE sandbox, and how to retrieve the MISP and CAPE tokens after first boot.
 
-## 📁 Structure du repo / Repo structure
+## Structure du repo / Repo structure
 
 ```
 .
@@ -329,7 +329,7 @@ curl -X POST http://localhost:8000/api/v1/admin/keys \
 └── GUIDE-DEPLOIEMENT.md
 ```
 
-## 🔌 L'API publique (extrait) / The public API (excerpt)
+## L'API publique (extrait) / The public API (excerpt)
 
 | Méthode / Method | Endpoint | Rôle / Role |
 | --- | --- | --- |
@@ -352,7 +352,7 @@ curl -X POST http://localhost:8000/api/v1/admin/keys \
 
 Documentation interactive / Interactive docs: `https://serveur:8000/docs` (Swagger UI).
 
-## 🔐 Conformité RGPD et santé / GDPR and healthcare compliance
+## Conformité RGPD et santé / GDPR and healthcare compliance
 
 **FR.** La protection des données patient n'est pas une option ajoutée après coup, elle est au cœur de la conception. Voici comment chaque principe se traduit concrètement dans le code.
 
@@ -370,7 +370,7 @@ Documentation interactive / Interactive docs: `https://serveur:8000/docs` (Swagg
 | Réseau isolé / Isolated network | CAPE n'a jamais accès au vrai Internet (INetSim simule les réponses) ; en déploiement deux machines, la détonation tourne sur une machine séparée |
 | Secrets | Docker Secrets uniquement (pas de variables d'environnement sensibles, aucun fichier de secret committé) |
 
-## 🧪 Tests
+## Tests
 
 ```bash
 # Tests unitaires
@@ -386,7 +386,7 @@ pytest orchestrator/tests/e2e -v
 pytest
 ```
 
-## 🔒 Sécurité en production / Production security
+## Sécurité en production / Production security
 
 **FR.** Avant de mettre MailGuardianX en production, voici les protections à mettre en place autour.
 
@@ -401,12 +401,12 @@ pytest
 
 Voir / See [GUIDE-DEPLOIEMENT.md](GUIDE-DEPLOIEMENT.md), section *Sécurité en production*.
 
-## 👥 Équipe / Team
+## Équipe / Team
 
 **Oteria Cyber School, promo B3 2025-2026**
 
 Projet collectif / Team project : Matthieu, Mohammed, Michael, Thibault, Tess.
 
-## 📄 Licence / License
+## Licence / License
 
 [GNU General Public License v3.0](LICENSE)
