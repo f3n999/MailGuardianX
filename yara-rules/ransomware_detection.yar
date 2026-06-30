@@ -161,6 +161,22 @@ rule Ransomware_Macro_Dropper {
         (1 of ($download*))
 }
 
+rule MailGuardianX_Simulation_Payload {
+    meta:
+        description = "Marqueur de simulation MailGuardianX — payload de test contrôlé"
+        author = "Oteria B3"
+        severity = "high"
+        category = "test"
+
+    strings:
+        $marker1 = "MGX_RANSOMWARE_PAYLOAD_SIM_v1" ascii
+        $marker2 = "MGX_DROPPER_SIM_OTERIA_B3" ascii
+        $marker3 = "MGX_CREDENTIAL_DUMP_SIM" ascii
+
+    condition:
+        1 of them
+}
+
 rule Ransomware_LNK_Dropper {
     meta:
         description = "Fichier LNK malveillant (vecteur d'infection courant 2024)"
