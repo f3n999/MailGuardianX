@@ -70,7 +70,7 @@ class CAPEClient:
         filename: str = "sample.bin",
         timeout: int = 120,
         priority: int = 3,
-        tags: str = "ransomware,auto",
+        tags: str = "win10",
     ) -> dict:
         """
         Soumet un fichier à CAPE pour analyse dynamique.
@@ -124,12 +124,12 @@ class CAPEClient:
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
                 response = await client.get(
-                    f"{self.cape_url}/apiv2/tasks/status/{task_id}/",
+                    f"{self.cape_url}/apiv2/tasks/view/{task_id}/",
                     headers=self._headers,
                 )
             if response.status_code == 200:
                 data = response.json()
-                return data.get("data", data.get("status", "unknown"))
+                return data.get("data", {}).get("status", data.get("status", "unknown"))
             return None
         except Exception as e:
             logger.error(f"CAPE status check error: {e}")
