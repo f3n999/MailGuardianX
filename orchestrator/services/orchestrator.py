@@ -212,7 +212,7 @@ class OrchestratorService:
         risk.compute_total()
         logger.info("[%s] %s… heuristic=%.3f", task_id, sha[:12], risk.heuristic_score)
 
-        if risk.heuristic_score >= 0.95:  # double extension + autres = direct BLOCK
+        if risk.heuristic_score >= 0.95:  # combinaison fatale (double-ext + type risqué, MIME mismatch…)
             return await self._finalize(
                 sha, Verdict.BLOCK, risk, signatures, yara_matches, clamav_sig,
                 threat_name="Heuristic/HighRisk", source="heuristic",

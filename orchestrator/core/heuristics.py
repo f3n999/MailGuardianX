@@ -13,10 +13,22 @@ logger = logging.getLogger(__name__)
 # ──────────────────── Règles heuristiques ────────────────────
 
 HIGH_RISK_EXTENSIONS: dict[FileType, float] = {
-    FileType.EXE: 0.95, FileType.DLL: 0.90, FileType.JS: 0.85,
-    FileType.VBS: 0.90, FileType.PS1: 0.88, FileType.BAT: 0.80,
-    FileType.HTA: 0.92, FileType.LNK: 0.85, FileType.ISO: 0.80,
-    FileType.IMG: 0.78,
+    # Scores abaissés pour router vers CAPE plutôt qu'auto-BLOCK.
+    # YARA/ClamAV sont les gatekeepers définitifs ; l'heuristique seule
+    # doit signaler "suspect → CAPE", pas "bloquer sans analyse de contenu".
+    # Les combinaisons restent fatales : double-ext (+0.35) ou
+    # MIME-mismatch (+0.30) sur ces types atteignent encore ≥ 0.95
+    # et déclenchent l'auto-BLOCK (ex. invoice.pdf.exe → 0.60+0.35 = 0.95).
+    FileType.EXE: 0.60,
+    FileType.DLL: 0.60,
+    FileType.VBS: 0.60,
+    FileType.HTA: 0.62,
+    FileType.PS1: 0.58,
+    FileType.JS:  0.55,
+    FileType.LNK: 0.58,
+    FileType.BAT: 0.52,
+    FileType.ISO: 0.52,
+    FileType.IMG: 0.50,
 }
 
 MEDIUM_RISK_EXTENSIONS: dict[FileType, float] = {
