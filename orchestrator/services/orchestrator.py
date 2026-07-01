@@ -418,6 +418,12 @@ class OrchestratorService:
             ttl=ttl,
         )
 
+        if verdict == Verdict.BLOCK and source != "misp":
+            try:
+                await self.misp.create_event(sha, threat_name, source)
+            except Exception as e:
+                logger.warning("MISP feedback loop error: %s", e)
+
         return {
             "verdict_obj": AttachmentVerdict(
                 sha256=sha,
