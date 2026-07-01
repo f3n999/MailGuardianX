@@ -246,7 +246,7 @@ class HeuristicEngine:
             FileType.PDF: ["application/pdf"],
             FileType.DOCX: ["application/vnd.openxmlformats-officedocument"],
             FileType.XLSX: ["application/vnd.openxmlformats-officedocument"],
-            FileType.EXE: ["application/x-dosexec", "application/x-executable", "application/x-msdownload"],
+            FileType.EXE: ["application/x-dosexec", "application/x-executable", "application/x-msdownload", "application/octet-stream"],
             FileType.ZIP: ["application/zip", "application/x-zip"],
         }
         expected_mimes = mismatches.get(ft)
