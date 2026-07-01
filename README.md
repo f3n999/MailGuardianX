@@ -5,7 +5,7 @@
 <h1 align="center">MailGuardianX</h1>
 
 <p align="center">
-  <b>Défense anti-ransomware par email pour le secteur santé</b><br>
+  <b>Défense anti-ransomware par email pour le secteur de la santé</b><br>
   Projet de fin d'année, Oteria Cyber School, promo B3 2025-2026
 </p>
 
@@ -43,37 +43,37 @@
 
 ## En deux mots / In a nutshell
 
-**FR.** MailGuardianX surveille la boîte mail d'un hôpital et bloque les emails piégés avant qu'ils ne fassent des dégâts. Concrètement, il se branche sur la messagerie Microsoft 365 de l'établissement, récupère les nouveaux emails et leurs pièces jointes, les passe dans une série de contrôles de sécurité, et rend un verdict en quelques secondes : sûr, suspect, ou dangereux. Tout ça sans qu'aucune information sur les patients ne sorte de l'hôpital. Seules des données techniques anonymes (l'empreinte d'un fichier, pas son contenu) sont analysées.
+**FR.** MailGuardianX surveille la boîte mail d'une structure du secteur de la santé et bloque les emails piégés avant qu'ils ne fassent des dégâts. Concrètement, il se branche sur la messagerie Microsoft 365 de la structure, récupère les nouveaux emails et leurs pièces jointes, les passe dans une série de contrôles de sécurité, et rend un verdict en quelques secondes : sûr, suspect, ou dangereux. Tout ça sans qu'aucune information sur les patients ne sorte de la structure. Seules des données techniques anonymes (l'empreinte d'un fichier, pas son contenu) sont analysées.
 
-Pour situer : un ransomware, c'est un logiciel malveillant qui chiffre les fichiers d'une organisation et réclame une rançon pour les débloquer. Les hôpitaux en sont une cible privilégiée, et le point d'entrée le plus courant reste la pièce jointe d'un email. C'est exactement ce que MailGuardianX cherche à arrêter.
+Pour situer : un ransomware, c'est un logiciel malveillant qui chiffre les fichiers d'une organisation et réclame une rançon pour les débloquer. Le secteur de la santé en est une cible privilégiée, et le point d'entrée le plus courant reste la pièce jointe d'un email. C'est exactement ce que MailGuardianX cherche à arrêter.
 
-**EN.** MailGuardianX watches a hospital's mailbox and blocks booby-trapped emails before they can do harm. In practice, it connects to the organization's Microsoft 365 email, pulls in new messages and their attachments, runs them through a series of security checks, and returns a verdict within seconds: safe, suspicious, or dangerous. All of this without any patient information ever leaving the hospital. Only anonymous technical data (a file's fingerprint, not its content) is analyzed.
+**EN.** MailGuardianX watches a healthcare organization's mailbox and blocks booby-trapped emails before they can do harm. In practice, it connects to the organization's Microsoft 365 email, pulls in new messages and their attachments, runs them through a series of security checks, and returns a verdict within seconds: safe, suspicious, or dangerous. All of this without any patient information ever leaving the organization. Only anonymous technical data (a file's fingerprint, not its content) is analyzed.
 
-For context: ransomware is malicious software that encrypts an organization's files and demands a ransom to unlock them. Hospitals are a prime target, and the most common entry point is still an email attachment. That is exactly what MailGuardianX is built to stop.
+For context: ransomware is malicious software that encrypts an organization's files and demands a ransom to unlock them. The healthcare sector is a prime target, and the most common entry point is still an email attachment. That is exactly what MailGuardianX is built to stop.
 
 ## Le problème / The problem
 
-**FR.** Les hôpitaux sont aujourd'hui la cible numéro un des attaques par ransomware, et le vecteur principal reste l'email avec une pièce jointe piégée. Les solutions du marché existent (Proofpoint, Fortinet, et d'autres), mais elles coûtent entre 10 000 et 50 000 euros par an, restent des boîtes noires dont on ne sait pas vraiment comment elles décident, et sont souvent pensées pour le cloud d'abord. Ce dernier point pose un vrai problème avec les données patient, soumises au RGPD, qui ne devraient pas transiter par des serveurs externes.
+**FR.** Le secteur de la santé est aujourd'hui la cible numéro un des attaques par ransomware, et le vecteur principal reste l'email avec une pièce jointe piégée. Les solutions du marché existent (Proofpoint, Fortinet, et d'autres), mais elles coûtent entre 10 000 et 50 000 euros par an, restent des boîtes noires dont on ne sait pas vraiment comment elles décident, et sont souvent pensées pour le cloud d'abord. Ce dernier point pose un vrai problème avec les données patient, soumises au RGPD, qui ne devraient pas transiter par des serveurs externes.
 
-**EN.** Hospitals are today the number-one target for ransomware attacks, and the main vector is still an email with a booby-trapped attachment. Commercial solutions exist (Proofpoint, Fortinet, and others), but they cost between 10,000 and 50,000 euros per year, remain black boxes whose decision-making is opaque, and are often cloud-first by design. That last point is a real issue for patient data, which falls under GDPR and should not pass through external servers.
+**EN.** The healthcare sector is today the number-one target for ransomware attacks, and the main vector is still an email with a booby-trapped attachment. Commercial solutions exist (Proofpoint, Fortinet, and others), but they cost between 10,000 and 50,000 euros per year, remain black boxes whose decision-making is opaque, and are often cloud-first by design. That last point is a real issue for patient data, which falls under GDPR and should not pass through external servers.
 
 ## Ce qu'on a construit / What we built
 
 **FR.** MailGuardianX est une alternative open source à ces solutions. Trois choix de conception résument l'approche :
 
 - **Open source et sans licence à payer** (GPL v3). Le code est lisible, vérifiable, et n'enferme personne dans un contrat.
-- **Auto-hébergé.** Le système tourne sur le serveur de l'hôpital, pas dans un cloud tiers. L'établissement garde la main sur ses données.
-- **Le minimum de données qui sort.** Seules des métadonnées techniques quittent le système d'information de l'hôpital : l'empreinte numérique d'un fichier (son hash SHA256) et les en-têtes de l'email. Jamais le corps de l'email, jamais un nom de patient.
+- **Auto-hébergé.** Le système tourne sur les serveurs de la structure, pas dans un cloud tiers. Chaque acteur du secteur garde la main sur ses données.
+- **Le minimum de données qui sort.** Seules des métadonnées techniques quittent le système d'information de la structure : l'empreinte numérique d'un fichier (son hash SHA256) et les en-têtes de l'email. Jamais le corps de l'email, jamais un nom de patient.
 
-Côté branchement, rien à installer sur les postes des employés. MailGuardianX se connecte directement au niveau du compte Microsoft 365 de l'établissement (le « tenant ») via l'API officielle de Microsoft, appelée Graph. C'est l'hôpital qui autorise cet accès une fois, et le système fait le reste tout seul.
+Côté branchement, rien à installer sur les postes des employés. MailGuardianX se connecte directement au niveau du compte Microsoft 365 de l'établissement (le « tenant ») via l'API officielle de Microsoft, appelée Graph. C'est la structure qui autorise cet accès une fois, et le système fait le reste tout seul.
 
 **EN.** MailGuardianX is an open-source alternative to those solutions. Three design choices sum up the approach:
 
 - **Open source, no license fee** (GPL v3). The code is readable, auditable, and locks no one into a contract.
-- **Self-hosted.** The system runs on the hospital's own server, not in a third-party cloud. The organization keeps control of its data.
-- **The least possible data leaves.** Only technical metadata leaves the hospital's information system: a file's digital fingerprint (its SHA256 hash) and the email headers. Never the email body, never a patient name.
+- **Self-hosted.** The system runs on the organization's own servers, not in a third-party cloud. Each healthcare organization keeps control of its data.
+- **The least possible data leaves.** Only technical metadata leaves the organization's information system: a file's digital fingerprint (its SHA256 hash) and the email headers. Never the email body, never a patient name.
 
-On the integration side, there is nothing to install on staff workstations. MailGuardianX connects directly at the level of the organization's Microsoft 365 account (the "tenant") through Microsoft's official API, called Graph. The hospital grants this access once, and the system handles the rest on its own.
+On the integration side, there is nothing to install on staff workstations. MailGuardianX connects directly at the level of the organization's Microsoft 365 account (the "tenant") through Microsoft's official API, called Graph. The organization grants this access once, and the system handles the rest on its own.
 
 ## Périmètre, ce qui est dedans et ce qui ne l'est pas / Scope, what is in and what is not
 
